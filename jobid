@@ -1,33 +1,77 @@
--- Tải Fluent UI
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Khởi tạo Fluent UI
-local Window = Fluent:CreateWindow("BloxFruit Server Joiner")
-local Tab = Window:AddTab("Join Server")
+local Window = Fluent:CreateWindow({
+    Title = "BloxFruit Server Joiner",
+    SubTitle = "Join Server by JobId",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 360),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
 
--- Thêm input box để nhập JobId
-local JobIdInput = Tab:AddInput({
-    Title = "Enter JobId",
-    Placeholder = "Paste the JobId here...",
-    Callback = function(value)
-        JobId = value -- Lưu giá trị JobId
+local Tabs = {
+    Main = Window:AddTab({ Title = "Join Server", Icon = "server" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+-- Main Tab - Server Join Feature
+Tabs.Main:AddParagraph({
+    Title = "Server Joiner",
+    Content = "Nhập JobId bên dưới và nhấn Join để tham gia server BloxFruits."
+})
+
+local JobIdInput = Tabs.Main:AddInput("JobIdInput", {
+    Title = "JobId",
+    Placeholder = "Nhập JobId tại đây...",
+    Numeric = false, -- Cho phép nhập cả chữ và số
+    Finished = false, -- Callback sẽ được gọi khi nhấn Enter
+    Callback = function(Value)
+        print("JobId đã nhập:", Value)
     end
 })
 
--- Thêm nút để thực hiện việc join server
-Tab:AddButton({
-    Title = "Join Server",
+local function JoinServer(JobId)
+    if JobId and JobId ~= "" then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(2753915549, JobId, game.Players.LocalPlayer)
+    else
+        Fluent:Notify({
+            Title = "Lỗi",
+            Content = "Vui lòng nhập JobId hợp lệ.",
+            Duration = 5
+        })
+    end
+end
+
+Tabs.Main:AddButton({
+    Title = "Join",
+    Description = "Nhấn để tham gia server với JobId đã nhập",
     Callback = function()
-        if JobId and JobId ~= "" then
-            local TeleportService = game:GetService("TeleportService")
-            local PlaceId = game.PlaceId
-            -- Sử dụng TeleportService để vào server với JobId
-            TeleportService:TeleportToPlaceInstance(PlaceId, JobId, game.Players.LocalPlayer)
-        else
-            print("Please enter a valid JobId!")
-        end
+        local JobId = Options.JobIdInput.Value
+        JoinServer(JobId)
     end
 })
 
--- Kích hoạt UI
-Window:Show()
+-- Settings Tab - SaveManager and InterfaceManager
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("BloxFruitJoiner")
+SaveManager:SetFolder("BloxFruitJoiner/Configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "BloxFruit Server Joiner",
+    Content = "Script đã được tải thành công.",
+    Duration = 8
+})
+
+SaveManager:LoadAutoloadConfig()
