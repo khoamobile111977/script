@@ -16,44 +16,48 @@ screenGui.Name = "JoinServerGui"
 screenGui.ResetOnSpawn = false
 
 -- Frame properties
-frame.Size = UDim2.new(0, 220, 0, 120)
-frame.Position = UDim2.new(0.5, -110, 0.5, -60)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 frame.BorderSizePixel = 0
-frame.BackgroundTransparency = 0.2
+frame.BackgroundTransparency = 0.1
 frame.ClipsDescendants = true
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BorderRadius = UDim.new(0, 10)
 
 -- TextBox properties
-textBox.Size = UDim2.new(0, 200, 0, 30)
-textBox.Position = UDim2.new(0.5, -100, 0, 10)
+textBox.Size = UDim2.new(0, 180, 0, 25)
+textBox.Position = UDim2.new(0.5, -90, 0, 10)
 textBox.PlaceholderText = "Enter Job ID"
 textBox.Text = ""
 textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+textBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 textBox.BorderSizePixel = 0
 textBox.Font = Enum.Font.SourceSans
 textBox.TextSize = 16
+textBox.BorderRadius = UDim.new(0, 5)
 
 -- JoinButton properties
-joinButton.Size = UDim2.new(0, 200, 0, 30)
-joinButton.Position = UDim2.new(0.5, -100, 0, 50)
+joinButton.Size = UDim2.new(0, 180, 0, 25)
+joinButton.Position = UDim2.new(0.5, -90, 0, 40)
 joinButton.Text = "Join Server"
 joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-joinButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+joinButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 joinButton.BorderSizePixel = 0
 joinButton.Font = Enum.Font.SourceSans
 joinButton.TextSize = 16
+joinButton.BorderRadius = UDim.new(0, 5)
 
 -- JoinLessPopulatedButton properties
-joinLessPopulatedButton.Size = UDim2.new(0, 200, 0, 30)
-joinLessPopulatedButton.Position = UDim2.new(0.5, -100, 0, 90)
+joinLessPopulatedButton.Size = UDim2.new(0, 180, 0, 25)
+joinLessPopulatedButton.Position = UDim2.new(0.5, -90, 0, 70)
 joinLessPopulatedButton.Text = "Join Less Populated Server"
 joinLessPopulatedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-joinLessPopulatedButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+joinLessPopulatedButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 joinLessPopulatedButton.BorderSizePixel = 0
 joinLessPopulatedButton.Font = Enum.Font.SourceSans
 joinLessPopulatedButton.TextSize = 16
+joinLessPopulatedButton.BorderRadius = UDim.new(0, 5)
 
 -- JoinButton functionality
 joinButton.MouseButton1Click:Connect(function()
@@ -63,12 +67,13 @@ joinButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- JoinLessPopulatedButton functionality
-joinLessPopulatedButton.MouseButton1Click:Connect(function()
-    -- Add functionality to join less populated server here
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, player)
+            break
+        end
+    end
 end)
 
 -- Tween animation for UI appearance
 local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local tween = TweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -110, 0.5, -60)})
+local tween = TweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -125, 0.5, -60)})
 tween:Play()
