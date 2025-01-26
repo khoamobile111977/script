@@ -1,0 +1,33 @@
+-- Tải Fluent UI
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- Khởi tạo Fluent UI
+local Window = Fluent:CreateWindow("BloxFruit Server Joiner")
+local Tab = Window:AddTab("Join Server")
+
+-- Thêm input box để nhập JobId
+local JobIdInput = Tab:AddInput({
+    Title = "Enter JobId",
+    Placeholder = "Paste the JobId here...",
+    Callback = function(value)
+        JobId = value -- Lưu giá trị JobId
+    end
+})
+
+-- Thêm nút để thực hiện việc join server
+Tab:AddButton({
+    Title = "Join Server",
+    Callback = function()
+        if JobId and JobId ~= "" then
+            local TeleportService = game:GetService("TeleportService")
+            local PlaceId = game.PlaceId
+            -- Sử dụng TeleportService để vào server với JobId
+            TeleportService:TeleportToPlaceInstance(PlaceId, JobId, game.Players.LocalPlayer)
+        else
+            print("Please enter a valid JobId!")
+        end
+    end
+})
+
+-- Kích hoạt UI
+Window:Show()
