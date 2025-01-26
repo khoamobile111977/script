@@ -16,35 +16,43 @@ screenGui.Name = "JoinServerGui"
 screenGui.ResetOnSpawn = false
 
 -- Frame properties
-frame.Size = UDim2.new(0, 300, 0, 140)
-frame.Position = UDim2.new(0.5, -150, 0.5, -70)
-frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+frame.Size = UDim2.new(0, 250, 0, 120)
+frame.Position = UDim2.new(0.5, -125, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 0.2
+frame.ClipsDescendants = true
 
 -- TextBox properties
-textBox.Size = UDim2.new(0, 280, 0, 40)
-textBox.Position = UDim2.new(0.5, -140, 0.5, -50)
+textBox.Size = UDim2.new(0, 230, 0, 30)
+textBox.Position = UDim2.new(0.5, -115, 0, 10)
 textBox.PlaceholderText = "Enter Job ID"
 textBox.Text = ""
 textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+textBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 textBox.BorderSizePixel = 0
+textBox.Font = Enum.Font.SourceSans
+textBox.TextSize = 18
 
 -- JoinButton properties
-joinButton.Size = UDim2.new(0, 280, 0, 40)
-joinButton.Position = UDim2.new(0.5, -140, 0.5, 0)
+joinButton.Size = UDim2.new(0, 230, 0, 30)
+joinButton.Position = UDim2.new(0.5, -115, 0, 50)
 joinButton.Text = "Join Server"
 joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-joinButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+joinButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 joinButton.BorderSizePixel = 0
+joinButton.Font = Enum.Font.SourceSans
+joinButton.TextSize = 18
 
 -- JoinLessPopulatedButton properties
-joinLessPopulatedButton.Size = UDim2.new(0, 280, 0, 40)
-joinLessPopulatedButton.Position = UDim2.new(0.5, -140, 0.5, 50)
+joinLessPopulatedButton.Size = UDim2.new(0, 230, 0, 30)
+joinLessPopulatedButton.Position = UDim2.new(0.5, -115, 0, 90)
 joinLessPopulatedButton.Text = "Join Less Populated Server"
 joinLessPopulatedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-joinLessPopulatedButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+joinLessPopulatedButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 joinLessPopulatedButton.BorderSizePixel = 0
+joinLessPopulatedButton.Font = Enum.Font.SourceSans
+joinLessPopulatedButton.TextSize = 18
 
 -- JoinButton functionality
 joinButton.MouseButton1Click:Connect(function()
@@ -67,5 +75,5 @@ end)
 
 -- Tween animation for UI appearance
 local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local tween = TweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -150, 0.5, -70)})
+local tween = TweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -125, 0.5, -60)})
 tween:Play()
