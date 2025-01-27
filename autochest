@@ -1,0 +1,56 @@
+
+local teleportService = game:GetService("TeleportService")
+local player = game.Players.LocalPlayer
+local teleportCount = 0
+
+function teleportToChest(location)
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(location.x, location.y, location.z)
+    teleportCount = teleportCount + 1
+    if teleportCount >= 5 then
+        player.Character:BreakJoints() -- Reset the character
+        teleportCount = 0
+    end
+end
+
+while true do
+    for _, location in ipairs(chestLocations) do
+        teleportToChest(location)
+        wait(1) -- Wait for 1 second before teleporting to the next chest
+    end
+end
+local areas = {
+    "Port Town",
+    "Hydra Island",
+    "Great Tree",
+    "Floating Turtle",
+    "Castle on the Sea",
+    "Haunted Castle",
+    "Sea of Treats"
+}
+
+local function teleportToChest(area, index)
+    local chestPath = workspace.Map:FindFirstChild(area)
+    if chestPath then
+        local chests = chestPath:FindFirstChild("Chests")
+        if chests then
+            local targetChest = chests:GetChildren()[index]
+            if targetChest and targetChest:IsA("BasePart") then
+                player.Character.HumanoidRootPart.CFrame = targetChest.CFrame
+            end
+        end
+    end
+end
+
+while true do
+    for _, area in ipairs(areas) do
+        for i = 1, 5 do
+            teleportToChest(area, i)
+            teleportCount = teleportCount + 1
+            if teleportCount >= 5 then
+                player.Character:BreakJoints() -- Reset the character
+                teleportCount = 0
+            end
+            wait(1.5) -- Wait for 1.5 seconds before teleporting to the next chest
+        end
+    end
+end
