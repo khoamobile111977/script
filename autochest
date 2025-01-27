@@ -34,7 +34,8 @@ end
 
 local function teleportToChestsInArea(area)
     local chests = findChestsInArea(area)
-    if not chests then
+    if not chests or #chests == 0 then
+        warn("No valid chests to teleport to in area: " .. area)
         return
     end
 
