@@ -1,0 +1,98 @@
+_G.AutoFarm = true
+_G.FastAttack = true
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- Fast Attack Configuration
+local FastAttackConfig = {
+    Enabled = true,
+    Interval = 0.001,
+    Range = 200,
+    MaxHits = 200
+}
+
+local function IsEnemyAlive(enemy)
+    return enemy and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0
+end
+
+local function GetEnemiesInRange()
+    local enemies = {}
+    for _, enemy in ipairs(Workspace.Enemies:GetChildren()) do
+        if IsEnemyAlive(enemy) then
+            local head = enemy:FindFirstChild("Head")
+            if head and LocalPlayer:DistanceFromCharacter(head.Position) <= FastAttackConfig.Range then
+                table.insert(enemies, {["Enemy"] = enemy, ["Target"] = head})
+            end
+        end
+    end
+    return enemies
+end
+
+local function FastAttack()
+    local NetModule = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+    local function AttackLoop()
+        while _G.FastAttack do
+            if FastAttackConfig.Enabled then
+                for _, target in ipairs(GetEnemiesInRange()) do
+                    NetModule["RE/RegisterAttack"]:FireServer(0)
+                    NetModule["RE/RegisterHit"]:FireServer(target.Target, {{target.Enemy, target.Target}})
+                end
+            end
+            task.wait(FastAttackConfig.Interval)
+        end
+    end
+    task.spawn(AttackLoop)
+end
+
+-- Quest Handling
+local Quests = require(ReplicatedStorage.Quests)
+
+local function GetQuest()
+    for questName, questData in pairs(Quests) do
+        for _, quest in ipairs(questData) do
+            if LocalPlayer.Data.Level.Value >= quest.LevelReq then
+                return questName, quest
+            end
+        end
+    end
+    return nil, nil
+end
+
+local function StartQuest()
+    local questName, quest = GetQuest()
+    if questName and quest then
+        ReplicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, 1)
+    end
+end
+
+local function CompleteQuest()
+    if LocalPlayer.PlayerGui.Main.Quest.Visible then
+        ReplicatedStorage.Remotes.CommF_:InvokeServer("CompleteQuest")
+    end
+end
+
+local function AutoFarm()
+    while _G.AutoFarm do
+        if not LocalPlayer.PlayerGui.Main.Quest.Visible then
+            StartQuest()
+        else
+            for _, enemy in ipairs(Workspace.Enemies:GetChildren()) do
+                if IsEnemyAlive(enemy) then
+                    repeat
+                        task.wait()
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
+                        FastAttack()
+                    until not IsEnemyAlive(enemy) or not _G.AutoFarm
+                end
+            end
+            CompleteQuest()
+        end
+        task.wait(1)
+    end
+end
+
+-- Start Auto Farm
+task.spawn(AutoFarm)
