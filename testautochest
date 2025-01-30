@@ -1,23 +1,21 @@
 local lp = game.Players.LocalPlayer
 game:GetService("Players").LocalPlayer.Idled:connect(function()
-	game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-	wait(1)
-	game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
 local id = game.PlaceId
 if id == 2753915549 then First_Sea = true; elseif id == 4442272183 then Second_Sea = true; elseif id == 7449423635 then Third_Sea = true; else game.Players.LocalPlayer:Kick("Hỗ trợ BloxKid thôi nha!") end;
 
-First_Sea = false
-Second_Sea = false
-Third_Sea = false
+local First_Sea, Second_Sea, Third_Sea = false, false, false
 local placeId = game.PlaceId
 if placeId == 2753915549 then
-	First_Sea = true
+    First_Sea = true
 elseif placeId == 4442272183 then
-	Second_Sea = true
+    Second_Sea = true
 elseif placeId == 7449423635 then
-	Third_Sea = true
+    Third_Sea = true
 end
 
 local autoChestEnabled = false
@@ -42,7 +40,7 @@ if First_Sea then
         autoChestEnabled = not autoChestEnabled
         ToggleButton.Text = "Auto Chest: " .. (autoChestEnabled and "ON" or "OFF")
         if autoChestEnabled then
-            mainLoop()
+            mainLoop()  -- Gọi hàm mainLoop khi bật autoChest
         end
     end)
 end
@@ -110,6 +108,3 @@ local function mainLoop()
         end
     end
 end
-
--- Remove the immediate call to mainLoop
--- mainLoop()
