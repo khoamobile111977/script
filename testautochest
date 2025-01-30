@@ -98,7 +98,7 @@ local function mainLoop()
 
 
 
-                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
+                if count % 70 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
 
                     resetCharacter()
                     resetCount = resetCount + 1
