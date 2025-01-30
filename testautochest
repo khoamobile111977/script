@@ -6,7 +6,7 @@ game:GetService("Players").LocalPlayer.Idled:connect(function()
 end)
 
 local id = game.PlaceId
-if id == 2753915549 then First_Sea = true; elseif id == 4442272183 then Second_Sea = true; elseif id == 7449423635 then Third_Sea = true; else game.Players.LocalPlayer:Kick("Hỗ trợ BloxKid thôi nha!") end;
+if id == 2753915549 then First_Sea = true; elseif id == 4442272183 then Second_Sea = true; elseif id == 7449423635 then Third_Sea = true; else game.Players.LocalPlayer:Kick("Hỗ trợ BloxKid thôi nhé") end
 
 local First_Sea, Second_Sea, Third_Sea = false, false, false
 local placeId = game.PlaceId
