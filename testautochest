@@ -1,0 +1,123 @@
+local lp = game.Players.LocalPlayer
+
+
+
+local areas = {
+
+    "Colosseum", "Desert", "Fountain", "Magma", "MobBoss", "Pirate",
+
+    "Prison", "Sky", "SkyArea1", "SkyArea2", "Town"
+
+}
+
+
+
+local function resetCharacter()
+
+    if lp.Character then
+
+        lp.Character:BreakJoints()  -- Reset nhân vật
+
+        task.wait(3)  -- Chờ 2 giây để tránh lỗi nhân vật chưa tải xong
+
+    end
+
+end
+
+
+
+local function jumpCharacter()
+    if lp.Character and lp.Character:FindFirstChild("Humanoid") then
+        lp.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end
+
+
+
+local function teleportToChest(area, index)
+
+    local chestPath = workspace.Map:FindFirstChild(area)
+
+    if chestPath then
+
+        local chests = chestPath:FindFirstChild("Chests")
+
+        if chests then
+
+            local allChests = chests:GetChildren()
+
+            if index <= #allChests then
+
+                local targetChest = allChests[index]
+
+                if targetChest and targetChest:IsA("BasePart") then
+
+                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+
+                        lp.Character.HumanoidRootPart.CFrame = targetChest.CFrame
+
+                        jumpCharacter()  -- Nhảy sau khi dịch chuyển
+
+                    end
+
+                end
+
+            end
+
+        end
+
+    end
+
+end
+
+
+
+local function hopServer()
+    -- Logic để chuyển server
+    game:GetService("TeleportService"):Teleport(game.PlaceId)
+end
+
+
+
+local function mainLoop()
+
+    local count = 0
+    local chestCount = 0
+
+    while true do
+
+        for _, area in ipairs(areas) do
+
+            for index = 1, 10 do
+
+                teleportToChest(area, index)
+
+                count = count + 1
+                chestCount = chestCount + 1
+
+                task.wait(0.25)  -- Thời gian dịch chuyển giữa các chest là 0.25s
+
+
+
+                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
+
+                    resetCharacter()
+
+                end
+
+                if chestCount >= 70 then  -- Auto hop server sau khi nhặt được 50 cái rương
+                    hopServer()
+                    return
+                end
+
+            end
+
+        end
+
+    end
+
+end
+
+
+
+mainLoop()
