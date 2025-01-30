@@ -1,6 +1,292 @@
+if not game:IsLoaded() then game.Loaded:Wait() end
 local lp = game.Players.LocalPlayer
 
+local Players = game:GetService("Players")
+local Title = "Khoadeptraivl"
+local SubTitle = "autochestscript" --Main Rewrite discord.gg/9PzEWrzgXR
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local Window = getgenv().Window or Fluent:CreateWindow({
+    Title = Title,
+    SubTitle = SubTitle,
+    TabWidth = 160,
+    Size = UDim2.fromOffset(480, 360),
+    Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
 
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main Farm", Icon = "" }),
+}
+
+local Options = Fluent.Options
+
+repeat
+    local ChooseTeam = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ChooseTeam", true)
+    local UIController = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("UIController", true)
+    if UIController and ChooseTeam then
+        if ChooseTeam.Visible then
+            for i, v in pairs(getgc()) do
+                if type(v) == "function" and getfenv(v).script == UIController then
+                    local constant = getconstants(v)
+                    pcall(function()
+                        if (constant[1] == "Pirates" or constant[1] == "Marines") and #constant == 1 then
+                            local teamToSelect = getgenv().Team or "Marines"
+                            if constant[1] == teamToSelect then
+                                v(teamToSelect)
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end
+    wait(1)
+until game.Players.LocalPlayer.Team
+
+repeat
+    wait()
+until game.Players.LocalPlayer.Character
+
+function Notify(content, dura)
+    content = tostring(content)
+    Fluent:Notify({
+        Title = "welcome to best script autochest!",
+        Content = content,
+        SubContent = "",
+        Duration = dura
+    })
+end
+
+--Place Id Check
+local id = game.PlaceId
+if id == 2753915549 then First_Sea = true; elseif id == 4442272183 then Second_Sea = true; elseif id == 7449423635 then Third_Sea = true; else game.Players.LocalPlayer:Kick("Hỗ trợ BloxKid thôi nha!") end;
+
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+	game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+	wait(1)
+	game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+
+	local HopGui = Instance.new("ScreenGui");
+	local HopFrame = Instance.new("Frame");
+	local NameHub = Instance.new("TextLabel");
+	local UIStroke = Instance.new("UIStroke");
+	local HopIn = Instance.new("TextLabel");
+	local DropShadowHolder = Instance.new("Frame");
+	local DropShadow = Instance.new("ImageLabel");
+	local Reason = Instance.new("TextLabel");
+	local ClickTo = Instance.new("TextLabel");
+	local ButtonCall = Instance.new("TextButton");
+
+	HopGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	HopGui.Name = "HopGui"
+	HopGui.Parent = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+	HopGui.Enabled = false 
+
+	HopFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	HopFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	HopFrame.BackgroundTransparency = 0.9990000128746033
+	HopFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	HopFrame.BorderSizePixel = 0
+	HopFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	HopFrame.Size = UDim2.new(1, 0, 1, 0)
+	HopFrame.Name = "HopFrame"
+	HopFrame.Parent = HopGui
+
+	NameHub.Font = Enum.Font.Gotham
+	NameHub.Text = "Elite Chest Auto Farm"
+	NameHub.TextColor3 = Color3.fromRGB(175.00000476837158, 187.00000405311584, 230.00000149011612)
+	NameHub.TextSize = 85
+	NameHub.AnchorPoint = Vector2.new(0.5, 0.5)
+	NameHub.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	NameHub.BackgroundTransparency = 0.9990000128746033
+	NameHub.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	NameHub.BorderSizePixel = 0
+	NameHub.Position = UDim2.new(0.5, 0, 0.5, -45)
+	NameHub.Size = UDim2.new(0, 200, 0, 80)
+	NameHub.Name = "Elite Chest Auto Farm"
+	NameHub.Parent = HopFrame
+
+	UIStroke.Color = Color3.fromRGB(175.00000476837158, 187.00000405311584, 230.00000149011612)
+	UIStroke.Thickness = 1.5
+	UIStroke.Parent = NameHub
+
+	HopIn.Font = Enum.Font.Gotham
+	HopIn.Text = "Hopping server in 0s"
+	HopIn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	HopIn.TextSize = 20
+	HopIn.AnchorPoint = Vector2.new(0.5, 0.5)
+	HopIn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	HopIn.BackgroundTransparency = 0.9990000128746033
+	HopIn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	HopIn.BorderSizePixel = 0
+	HopIn.Position = UDim2.new(0.5, 0, 0.5, 0)
+	HopIn.Size = UDim2.new(0, 200, 0, 30)
+	HopIn.Name = "HopIn"
+	HopIn.Parent = HopFrame
+
+	DropShadowHolder.BackgroundTransparency = 1
+	DropShadowHolder.BorderSizePixel = 0
+	DropShadowHolder.Size = UDim2.new(1, 0, 1, 0)
+	DropShadowHolder.ZIndex = 0
+	DropShadowHolder.Name = "DropShadowHolder"
+	DropShadowHolder.Parent = HopFrame
+
+	DropShadow.Image = "rbxassetid://6015897843"
+	DropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	DropShadow.ImageTransparency = 0.999
+	DropShadow.ScaleType = Enum.ScaleType.Slice
+	DropShadow.SliceCenter = Rect.new(49, 49, 450, 450)
+	DropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+	DropShadow.BackgroundTransparency = 1
+	DropShadow.BorderSizePixel = 0
+	DropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+	DropShadow.Size = UDim2.new(1, 47, 1, 47)
+	DropShadow.ZIndex = 0
+	DropShadow.Name = "DropShadow"
+	DropShadow.Parent = DropShadowHolder
+
+	Reason.Font = Enum.Font.Gotham
+	Reason.Text = ""
+	Reason.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Reason.TextSize = 16
+	Reason.AnchorPoint = Vector2.new(0.5, 0.5)
+	Reason.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Reason.BackgroundTransparency = 0.9990000128746033
+	Reason.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Reason.BorderSizePixel = 0
+	Reason.Position = UDim2.new(0.5, 0, 0.5, 32)
+	Reason.Size = UDim2.new(0, 200, 0, 16)
+	Reason.Name = "Reason"
+	Reason.Parent = HopFrame
+
+	ClickTo.Font = Enum.Font.Gotham
+	ClickTo.Text = "Click To This Frame To Abort The Process"
+	ClickTo.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ClickTo.TextSize = 16
+	ClickTo.TextTransparency = 0.5
+	ClickTo.AnchorPoint = Vector2.new(0.5, 0.5)
+	ClickTo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ClickTo.BackgroundTransparency = 0.9990000128746033
+	ClickTo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ClickTo.BorderSizePixel = 0
+	ClickTo.Position = UDim2.new(0.5, 0, 0.5, 50)
+	ClickTo.Size = UDim2.new(1, 0, 1, 0)
+	ClickTo.Name = "ClickTo"
+	ClickTo.Parent = HopFrame
+
+	ButtonCall.Font = Enum.Font.SourceSans
+	ButtonCall.Text = ""
+	ButtonCall.TextColor3 = Color3.fromRGB(0, 0, 0)
+	ButtonCall.TextSize = 14
+	ButtonCall.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ButtonCall.BackgroundTransparency = 0.9990000128746033
+	ButtonCall.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ButtonCall.BorderSizePixel = 0
+	ButtonCall.Size = UDim2.new(1, 0, 1, 0)
+	ButtonCall.Name = "ButtonCall"
+	ButtonCall.Parent = HopFrame
+
+	local Blur = Instance.new("BlurEffect")
+	Blur.Size = 0
+	Blur.Parent = game.Lighting
+	Blur.Enabled = true
+
+	function fadein() 
+		for i=0,50,5 do 
+			Blur.Size = i 
+			wait() 
+		end 
+	end 
+	function fadeout() 
+		for i=50,0,-5 do 
+			Blur.Size = i 
+			wait() 
+		end 
+	end 
+
+
+	SetNewReason = function(reasonreal,time)
+		if not reasonreal then reasonreal = '' end 
+		if reasonreal == '' then
+			HopGui.Enabled = false  
+			fadeout()
+			return 
+		end   
+		if not time then time = 3 end 
+		HopGui.Enabled = true    
+
+		fadein()
+
+		Reason.Text = "Reason: "..reasonreal
+		local t0 = time * 10
+		while task.wait(0.1) do 
+			HopIn.Text = "Delay Hopping: "..t0/10
+			t0 = t0 - 1
+			if math.floor(t0) == 0 then break end 
+		end  
+		wait(.4)
+
+		HopIn.Text = "Joining Server: ".. game.JobId .. " Player Count: "..#game.Players:GetPlayers() .. "/12" 
+		game:GetService("TeleportService"):SetTeleportGui(HopGui)
+		ClickTo.Text = "Processing..."
+		wait(1)
+		game:GetService("TeleportService"):Teleport(game.PlaceId)
+
+	end
+	---- Events 
+	ButtonCall.Activated:Connect(function()
+		getgenv().CancelHop = true  
+
+		SetNewReason()
+	end)     
+
+    local function Hop()
+        local Http = game:GetService("HttpService")
+        local TPS = game:GetService("TeleportService")
+        local Api = "https://games.roblox.com/v1/games/"
+        local _place = game.PlaceId
+        local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
+        
+        function ListServers(cursor)
+          local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
+          return Http:JSONDecode(Raw)
+        end
+        local Server, Next
+        repeat task.wait()
+          local Servers = ListServers(Next)
+          Server = Servers.data[1] Next = Servers.nextPageCursor
+        until Server TPS:TeleportToPlaceInstance(_place, Server.id, Player)
+      end
+
+
+First_Sea = false
+Second_Sea = false
+Third_Sea = false
+local placeId = game.PlaceId
+if placeId == 2753915549 then
+First_Sea = true
+elseif placeId == 4442272183 then
+Second_Sea = true
+elseif placeId == 7449423635 then
+Third_Sea = true
+end
+
+local autoChestEnabled = false
+
+if First_Sea then
+    local autoChestToggle = Tabs.Main:AddToggle({
+        Title = "Auto Chest",
+        Default = false,
+        Callback = function(value)
+            autoChestEnabled = value
+            if autoChestEnabled then
+                mainLoop()
+            end
+        end
+    })
+end
 
 local areas = {
 
@@ -84,7 +370,7 @@ local function mainLoop()
     local count = 0
     local resetCount = 0
 
-    while true do
+    while autoChestEnabled do
 
         for _, area in ipairs(areas) do
 
@@ -105,7 +391,7 @@ local function mainLoop()
 
                 end
 
-                if resetCount >= 6 then  -- Auto hop server sau khi reset nhân vật 10 lần
+                if resetCount >= 5 then  -- Auto hop server sau khi reset nhân vật 10 lần
                     hopServer()
                     return
                 end
