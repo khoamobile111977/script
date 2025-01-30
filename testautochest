@@ -99,13 +99,13 @@ local function mainLoop()
 
 
 
-                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
+                if count % 70 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
 
                     resetCharacter()
 
                 end
 
-                if chestCount >= 50 then  -- Auto hop server sau khi nhặt được 50 cái rương
+                if chestCount >= 10 then  -- Auto hop server sau khi nhặt được 50 cái rương
                     hopServer()
                     return
                 end
