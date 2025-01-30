@@ -82,7 +82,7 @@ end
 local function mainLoop()
 
     local count = 0
-    local chestCount = 0
+    local resetCount = 0
 
     while true do
 
@@ -93,7 +93,6 @@ local function mainLoop()
                 teleportToChest(area, index)
 
                 count = count + 1
-                chestCount = chestCount + 1
 
                 task.wait(0.25)  -- Thời gian dịch chuyển giữa các chest là 0.25s
 
@@ -102,10 +101,11 @@ local function mainLoop()
                 if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
 
                     resetCharacter()
+                    resetCount = resetCount + 1
 
                 end
 
-                if chestCount >= 0 then  -- Auto hop server sau khi nhặt được 50 cái rương
+                if resetCount >= 10 then  -- Auto hop server sau khi reset nhân vật 10 lần
                     hopServer()
                     return
                 end
