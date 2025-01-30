@@ -94,11 +94,11 @@ local function mainLoop()
 
                 count = count + 1
 
-                task.wait(0.25)  -- Thời gian dịch chuyển giữa các chest là 0.25s
+                task.wait(0.2)  -- Thời gian dịch chuyển giữa các chest là 0.25s
 
 
 
-                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
+                if count % 70 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
 
                     resetCharacter()
                     resetCount = resetCount + 1
