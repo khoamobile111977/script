@@ -94,12 +94,12 @@ local function autoChestLoop()
                 count = count + 1
                 task.wait(0.2)
 
-                if count % 50 == 0 then
+                if count % 40 == 0 then
                     resetCharacter()
                     resetCount = resetCount + 1
                 end
 
-                if resetCount >= 5 then
+                if resetCount >= 4 then
                     hopServer()
                     return
                 end
