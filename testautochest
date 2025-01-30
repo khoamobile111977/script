@@ -105,7 +105,7 @@ local function mainLoop()
 
                 end
 
-                if chestCount >= 50 then  -- Auto hop server sau khi nhặt được 50 cái rương
+                if chestCount >= 500 then  -- Auto hop server sau khi nhặt được 50 cái rương
                     hopServer()
                     return
                 end
