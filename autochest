@@ -1,109 +1,205 @@
-local lp = game.Players.LocalPlayer
+-- Services
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-
-
-local areas = {
-
-    "Colosseum", "Desert", "Fountain", "Magma", "MobBoss", "Pirate",
-
-    "Prison", "Sky", "SkyArea1", "SkyArea2", "Town"
-
+-- Constants
+local AREAS = {
+	"Colosseum", "Desert", "Fountain", "Magma", "MobBoss", 
+	"Pirate", "Prison", "Sky", "SkyArea1", "SkyArea2", "Town"
 }
 
+local PLACE_IDS = {
+	FIRST_SEA = 2753915549,
+	SECOND_SEA = 4442272183,
+	THIRD_SEA = 7449423635
+}
 
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local Running = false
+local CurrentSea = nil
 
-local function resetCharacter()
+-- Anti-AFK
+LocalPlayer.Idled:Connect(function()
+	VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+	wait(1)
+	VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
 
-    if lp.Character then
-
-        lp.Character:BreakJoints()  -- Reset nhân vật
-
-        task.wait(3)  -- Chờ 2 giây để tránh lỗi nhân vật chưa tải xong
-
-    end
-
+-- Check current sea and validate
+local function checkCurrentSea()
+	local placeId = game.PlaceId
+	if placeId == PLACE_IDS.FIRST_SEA then
+		CurrentSea = "First"
+	elseif placeId == PLACE_IDS.SECOND_SEA then
+		CurrentSea = "Second"
+		LocalPlayer:Kick("Script chỉ hỗ trợ Sea 1!")
+	elseif placeId == PLACE_IDS.THIRD_SEA then
+		CurrentSea = "Third"
+		LocalPlayer:Kick("Script chỉ hỗ trợ Sea 1!")
+	else
+		LocalPlayer:Kick("Hỗ trợ BloxKid thôi nha!")
+	end
 end
 
+-- Auto-select Pirate team
+local function autoSelectPirateTeam()
+	local teamEvent = ReplicatedStorage:WaitForChild("TeamEvent")
+	if teamEvent then
+		teamEvent:FireServer("Pirates")
+	end
+end
 
+-- Utility Functions
+local function resetCharacter()
+	if LocalPlayer.Character then
+		LocalPlayer.Character:BreakJoints()
+		task.wait(4)
+	end
+end
 
 local function jumpCharacter()
-    if lp.Character and lp.Character:FindFirstChild("Humanoid") then
-        lp.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
 end
-
-
 
 local function teleportToChest(area, index)
+	local chestPath = workspace.Map:FindFirstChild(area)
+	if not chestPath then return end
 
-    local chestPath = workspace.Map:FindFirstChild(area)
+	local chests = chestPath:FindFirstChild("Chests")
+	if not chests then return end
 
-    if chestPath then
+	local allChests = chests:GetChildren()
+	if index > #allChests then return end
 
-        local chests = chestPath:FindFirstChild("Chests")
+	local targetChest = allChests[index]
+	if not (targetChest and targetChest:IsA("BasePart")) then return end
 
-        if chests then
-
-            local allChests = chests:GetChildren()
-
-            if index <= #allChests then
-
-                local targetChest = allChests[index]
-
-                if targetChest and targetChest:IsA("BasePart") then
-
-                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-
-                        lp.Character.HumanoidRootPart.CFrame = targetChest.CFrame
-
-                        jumpCharacter()  -- Nhảy sau khi dịch chuyển
-
-                    end
-
-                end
-
-            end
-
-        end
-
-    end
-
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		LocalPlayer.Character.HumanoidRootPart.CFrame = targetChest.CFrame
+		jumpCharacter()
+	end
 end
 
-
-
-local function mainLoop()
-
-    local count = 0
-
-    while true do
-
-        for _, area in ipairs(areas) do
-
-            for index = 1, 10 do
-
-                teleportToChest(area, index)
-
-                count = count + 1
-
-                task.wait(0.25)  -- Thời gian dịch chuyển giữa các chest là 0.25s
-
-
-
-                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
-
-                    resetCharacter()
-
-                end
-
-            end
-
-        end
-
-    end
-
+local function hopServer()
+	TeleportService:Teleport(game.PlaceId)
 end
 
+-- Main Auto Chest Function
+local function autoChestLoop()
+	local count = 0
+	local resetCount = 0
 
+	while Running do
+		for _, area in ipairs(AREAS) do
+			for index = 1, 7 do
+				if not Running then return end
+				
+				teleportToChest(area, index)
+				count = count + 1
+				task.wait(0.2)
 
-mainLoop()
+				if count % 50 == 0 then
+					resetCharacter()
+					resetCount = resetCount + 1
+				end
+
+				if resetCount >= 5 then
+					hopServer()
+					return
+				end
+			end
+		end
+	end
+end
+
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "AutoChestGUI"
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.8, 0, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "Auto Chest Sea 1"  -- Changed title to specify Sea 1
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = Frame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0.8, 0, 0, 30)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Text = "START"
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Parent = Frame
+
+-- Make frame draggable
+local UserInputService = game:GetService("UserInputService")
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Frame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+Title.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Toggle Button Logic
+ToggleButton.MouseButton1Click:Connect(function()
+	Running = not Running
+	
+	if Running then
+		ToggleButton.Text = "STOP"
+		ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+		task.spawn(autoChestLoop)
+	else
+		ToggleButton.Text = "START"
+		ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+	end
+end)
+
+-- Initialize
+checkCurrentSea()
+autoSelectPirateTeam()
