@@ -8,7 +8,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local Window = getgenv().Window or Fluent:CreateWindow({
     Title = Title,
     SubTitle = SubTitle,
-    TabWidth = 160,
+    TabWidth = 100,
     Size = UDim2.fromOffset(480, 360),
     Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
     Theme = "Dark",
@@ -403,7 +403,3 @@ local function mainLoop()
     end
 
 end
-
-
-
-mainLoop()
