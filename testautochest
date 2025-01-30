@@ -88,7 +88,7 @@ local function mainLoop()
 
         for _, area in ipairs(areas) do
 
-            for index = 1, 10 do
+            for index = 1, 7 do
 
                 teleportToChest(area, index)
 
@@ -98,14 +98,14 @@ local function mainLoop()
 
 
 
-                if count % 70 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
+                if count % 100 == 0 then  -- Reset nhân vật sau mỗi 100 lần dịch chuyển 
 
                     resetCharacter()
                     resetCount = resetCount + 1
 
                 end
 
-                if resetCount >= 10 then  -- Auto hop server sau khi reset nhân vật 10 lần
+                if resetCount >= 6 then  -- Auto hop server sau khi reset nhân vật 10 lần
                     hopServer()
                     return
                 end
