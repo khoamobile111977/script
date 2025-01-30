@@ -1,24 +1,7 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
 local lp = game.Players.LocalPlayer
 
-local Players = game:GetService("Players")
-local Title = "Khoadeptraivl"
-local SubTitle = "autochestscript" --Main Rewrite discord.gg/9PzEWrzgXR
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local Window = getgenv().Window or Fluent:CreateWindow({
-	Title = Title,
-	SubTitle = SubTitle,
-	TabWidth = 100,
-	Size = UDim2.fromOffset(480, 360),
-	Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
-	Theme = "Dark",
-	MinimizeKey = Enum.KeyCode.LeftControl
-})
-
-local Tabs = {
-	Main = Window:AddTab({ Title = "Main Farm", Icon = "" }),
-}
-
 local Options = Fluent.Options
 
 repeat
@@ -58,7 +41,7 @@ function Notify(content, dura)
 	})
 end
 
---Place Id Check
+-- Place Id Check
 local id = game.PlaceId
 if id == 2753915549 then First_Sea = true; elseif id == 4442272183 then Second_Sea = true; elseif id == 7449423635 then Third_Sea = true; else game.Players.LocalPlayer:Kick("Hỗ trợ BloxKid thôi nha!") end;
 
@@ -271,21 +254,6 @@ elseif placeId == 7449423635 then
 	Third_Sea = true
 end
 
-local autoChestEnabled = false
-
-if First_Sea then
-	local autoChestDropdown = Tabs.Main:AddDropdown({
-		Title = "Auto Chest",
-		Default = false,
-		Callback = function(value)
-			autoChestEnabled = value
-			if autoChestEnabled then
-				mainLoop()
-			end
-		end
-	})
-end
-
 local areas = {
 	"Colosseum", "Desert", "Fountain", "Magma", "MobBoss", "Pirate",
 	"Prison", "Sky", "SkyArea1", "SkyArea2", "Town"
@@ -332,7 +300,7 @@ local function mainLoop()
 	local count = 0
 	local resetCount = 0
 
-	while autoChestEnabled do
+	while true do
 		for _, area in ipairs(areas) do
 			for index = 1, 7 do
 				teleportToChest(area, index)
@@ -344,11 +312,22 @@ local function mainLoop()
 					resetCount = resetCount + 1
 				end
 
-				if resetCount >= 5 then  -- Auto hop server sau khi reset nhân vật 10 lần
+				if resetCount >= 6 then  -- Auto hop server sau khi reset nhân vật 10 lần
 					hopServer()
 					return
 				end
 			end
 		end
 	end
+end
+
+-- UI for enabling/disabling auto farm chest
+local autoFarmEnabled = true
+
+Fluent:CreateWindow("Auto Farm Chest"):Section("Settings"):Toggle("Enable Auto Farm", true, function(state)
+	autoFarmEnabled = state
+end)
+
+if First_Sea then
+	mainLoop()
 end
