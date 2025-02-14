@@ -1,0 +1,999 @@
+getgenv().Config = {
+    ["Auto Team"] = {
+    ["Team"] = "Pirates", -- Marines
+    ["Enable Lock Bounty"] = false,
+    ["Lock Bounty"] = {0, 300000000},
+    },
+    ["Panic % Health"] = {30, 50},
+    ["Skip"] = { 
+        ["Fruit"] = {["Enabled"] = true,
+            ["List"] = {
+                "Portal-Portal",
+            }
+        },
+        ["V4"] = false
+    },
+    ["Hunt Method"] = {
+        ["Use Move Predict"] = true,
+        ["Hit and Run"] = true
+    },
+    ["Spam All Skill On V4"] = {
+        ["Enabled"] = true,
+        ["Weapons"] = {"Melee", "Gun"}
+    },
+    ["Chat Kill"] = {
+        ["Enabled"] = false,
+        ["Message"] = {"No Skill? Use Gold Hup Now", "i have a good gaming chair"}
+    },
+    ["Custom Y Run"] = {
+        ["Enabled"] = false,
+        ["Y Run"] = 100
+    },
+    ["Misc"] = {
+        ["Cam Farm"] = true,
+        ["White Screen"] = false,
+        ["Click Delay"] = 1.5,
+        ["HightLight Mode"] = true,
+        ["Hide Map"] = false,
+    },
+    ["Items"] = {["Use"] = {"Melee", "Gun"},
+        ["Melee"] = {
+            ["Enable"] = true,
+            ["Delay"] = 1,
+            ["Skills"] = {
+                ["Z"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["X"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["C"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["V"] = {["Enable"] = false, ["HoldTime"] = 0}
+            }
+        },
+        ["Blox Fruit"] = {
+            ["Enable"] = false,
+            ["Delay"] = 1.5,
+            ["Skills"] = {
+                ["Z"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["X"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["C"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["V"] = {["Enable"] = true, ["HoldTime"] = 0.25},
+                ["F"] = {["Enable"] = false, ["HoldTime"] = 0}
+            }
+        },
+        ["Sword"] = {
+            ["Enable"] = false,
+            ["Delay"] = 1,
+            ["Skills"] = {
+                ["Z"] = {["Enable"] = true, ["HoldTime"] = 0.25},
+                ["X"] = {["Enable"] = true, ["HoldTime"] = 0.7}
+            } 
+        },
+        ["Gun"] = {
+            ["Enable"] = true,          
+            ["Delay"] = 1,
+            ["Skills"] = {
+                ["Z"] = {["Enable"] = true, ["HoldTime"] = 0},
+                ["X"] = {["Enable"] = true, ["HoldTime"] = 0}
+            } 
+        }
+    }
+}
+
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players
+repeat task.wait() until game.Players.LocalPlayer
+repeat task.wait() until game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+repeat task.wait() until game.Players.LocalPlayer.PlayerGui:FindFirstChild("Main");
+--// nill
+local plrs = game:GetService("Players")
+local lp = plrs.LocalPlayer
+local rs = game.ReplicatedStorage
+local player = game.Players.LocalPlayer
+local teamRemote = rs:FindFirstChild("JoinTeam")
+
+--// Join Team
+if game:GetService("Players").LocalPlayer.PlayerGui.Main:FindFirstChild("ChooseTeam") then
+    repeat task.wait()
+        if game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("Main").ChooseTeam.Visible == true then
+            if getgenv().Config["Auto Team"]["Team"] then
+                for i, v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container["Marines"].Frame.TextButton.Activated)) do
+                    for a, b in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
+                        b:Fire() 
+                    end
+                    v.Function()
+                end 
+            else
+                for i, v in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container["Pirates"].Frame.TextButton.Activated)) do
+                    for a, b in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
+                        b:Fire() 
+                    end
+                    v.Function()
+                end 
+            end
+        end
+    until game.Players.LocalPlayer.Team ~= nil and game:IsLoaded()
+    end
+
+--// Lock
+if getgenv().Config["Auto Team"]["Enable Lock Bounty"] and not (lp.leaderstats["Bounty/Honor"].Value > tonumber(getgenv().Config["Auto Team"]["Lock Bounty"][1])) or not (lp.leaderstats["Bounty/Honor"].Value < tonumber(getgenv().Config["Auto Team"]["Lock Bounty"][2])) then 
+    lp:Kick("Lock Bounty")
+end
+
+function Hop()
+    function bQ(v)
+        if v.Name == "ErrorPrompt" then
+            if v.Visible then
+                if v.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
+                    v.Visible = false
+                end
+            end
+            v:GetPropertyChangedSignal("Visible"):Connect(function()
+                if v.Visible then
+                    if v.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
+                        v.Visible = false
+                    end
+                end
+            end)
+        end
+    end
+    for i, v in game.CoreGui.RobloxPromptGui.promptOverlay:GetChildren() do
+        bQ(v) 
+    end
+    game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(bQ)
+    while wt() do
+    randomy = math.random(3000, 7000)
+    if Config["Custom Y Run"].Enabled then
+        randomy = Config["Custom Y Run"]["Y Run"]
+    end
+    to(CFrame.new(-12463.8740234375, randomy, -7523.77392578125))
+    if not player:GetAttribute("InCombat") then
+        for r = 1, math.huge do
+            if player:GetAttribute("InCombat") then
+                break 
+            end
+            to(CFrame.new(-12463.8740234375, 1000, -7523.77392578125))
+            game.Players.LocalPlayer.PlayerGui.ServerBrowser.Frame.Filters.SearchRegion.TextBox.Text = "Singapore"
+            for k, v in inv(rs.__ServerBrowser, {r}) do
+                if k ~= game.JobId and v["Count"] <= 10 then
+                    inv(rs.__ServerBrowser, {"teleport", k})
+                end
+            end
+            wt()
+        end
+    end
+end
+end
+
+getgenv().Bounty = {
+    Targ = nil,
+    Checked = {},
+    Hop = false,
+    CanUseWeapon = false,
+    CanUseSkill = false,
+    UsingSkill = false,
+    WeaponUsing = "",
+    ToolTipUsing = "Melee",
+    CFrameTarget = CFrame.new(Vector3.new(0,0,0)),
+    Digit = CFrame.new(Vector3.new(0,0,0)),
+}
+--- Tween / Bypass
+local w = game.PlaceId
+if w == 2753915549 then
+    distbyp = 1500
+elseif w == 4442272183 then
+    distbyp = 3500
+elseif w == 7449423635 then
+    distbyp = 6000
+end
+function getPortal(check2)
+    local check3 = check2.Position
+    local w = game.PlaceId
+    if w == 2753915549 then
+        gQ = {
+            Vector3.new(-7894.6201171875, 5545.49169921875, -380.246346191406),
+            Vector3.new(-4607.82275390625, 872.5422973632812, -1667.556884765625),
+            Vector3.new(61163.8515625, 11.759522438049316, 1819.7841796875),
+            Vector3.new(3876.280517578125, 35.10614013671875, -1939.3201904296875)
+        }
+    elseif w == 4442272183 then
+        gQ = {
+            Vector3.new(-288.46246337890625, 306.130615234375, 597.9988403320312),
+            Vector3.new(2284.912109375, 15.152046203613281, 905.48291015625),
+            Vector3.new(923.21252441406, 126.9760055542, 32852.83203125),
+            Vector3.new(-6508.5581054688, 89.034996032715, -132.83953857422)
+        }
+    elseif w == 7449423635 then
+        gQ = {
+            Vector3.new(-5058.77490234375, 314.5155029296875, -3155.88330078125),
+            Vector3.new(5756.83740234375, 610.4240112304688, -253.9253692626953),
+            Vector3.new(-12463.8740234375, 374.9144592285156, -7523.77392578125),
+            Vector3.new(28282.5703125, 14896.8505859375, 105.1042709350586),
+            Vector3.new(-11993.580078125, 334.7812805175781, -8844.1826171875),
+            Vector3.new(5314.58203125, 25.419387817382812, -125.94227600097656)
+        }
+    end
+    local aM, aN = Vector3.new(0,0,0), math.huge
+
+    for _, aL in pairs(gQ) do
+        if (aL-check3).Magnitude < aN and aM ~= aL then
+            aM, aN = aL,  (aL-check3).Magnitude
+        end 
+    end
+    return aM
+end  
+function getSpawn(wtf)
+    local a, b = nil, math.huge
+    for i,v in pairs(game.Workspace._WorldOrigin.PlayerSpawns:FindFirstChild(tostring(lp.Team)):GetChildren()) do
+        if tostring(v) ~= "Leviathan" and (v:GetModelCFrame().Position-wtf.Position).Magnitude < b then
+            a = v:GetModelCFrame()
+            b = (v:GetModelCFrame().Position-wtf.Position).Magnitude
+        end
+    end
+    return a
+end
+function request(check1)
+    game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack({"requestEntrance", check1}))
+end
+function calcpos(I, II) 
+    if not II then 
+        II = game.Players.LocalPlayer.Character.PrimaryPart.CFrame 
+    end 
+    return (Vector3.new(I.X, 0, I.Z)-Vector3.new(II.X, 0, II.Z)).Magnitude 
+end 
+function to(Pos)
+    if not Pos then return end 
+    for _, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false    
+        end
+    end
+    if not game.Players.LocalPlayer.Character.HumanoidRootPart:FindFirstChild("Vang") then
+        local ngu = Instance.new("BodyVelocity", game.Players.LocalPlayer.Character.HumanoidRootPart)
+        ngu.Name = "Vang"
+        ngu.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+        ngu.Velocity = Vector3.new(0,0,0)
+    end 
+    Portal = getPortal(Pos) 
+    Spawn = getSpawn(Pos) 
+    for mm = 0,3,1 do 
+        if getSpawn(Pos) ~= Spawn then 
+            return 
+        end 
+    end 
+    MyCFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+    Distance = calcpos(MyCFrame, Pos)
+    if Distance > calcpos(Portal, Pos) then
+    return request(Portal)
+end
+if Spawn then 
+    Pos0 = calcpos(Spawn, Pos)
+    if Pos0 < Distance and calcpos(MyCFrame, Spawn) > Pos0 then
+    end
+end
+    if Distance < 500 then
+        Speed = 370
+    elseif Distance < 1000 then
+        Speed = 370
+    elseif Distance >= 1000 then
+        Speed = 370
+    end
+    if Speed ~= nil then
+        tween = game:GetService("TweenService"):Create(game.Players.LocalPlayer.Character.HumanoidRootPart,TweenInfo.new(Distance / Speed, Enum.EasingStyle.Linear),{CFrame = Pos})
+        tween:Play() 
+    end
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame.X, Pos.Y, game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame.Z)
+end
+--// Equip
+function equip(tool)
+    for _, v in lp.Backpack:GetChildren() do 
+        if v:IsA("Tool") and v.ToolTip == tool then
+            wfh(lp):EquipTool(v)
+            return v.Name
+        end 
+    end 
+    return false
+end
+--// Use Skill
+function down(key, hold)
+    pcall(function()
+        if not ffc(lp.Character, Bounty.WeaponUsing) then
+            equip(Bounty.ToolTipUsing)
+        end
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
+        local spam = tick()
+        repeat wt()
+            if not ffc(lp.Character, Bounty.WeaponUsing) then
+                equip(Bounty.ToolTipUsing)
+            end
+            game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
+        until (tick() - spam) >= hold or not (Bounty.CanUseWeapon and Bounty.CanUseSkill) or not (ffc(lp.Character, "Busy") and lp.Character.Busy.Value)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
+    end) 
+end
+--// Skill
+function cd(I, II) 
+    if not II then II = lp.Character.PrimaryPart.CFrame end
+    return (Vector3.new(I.X, 0, I.Z) - Vector3.new(II.X, 0, II.Z)).Magnitude 
+end 
+function int(num)
+    if not num then return end
+    return tonumber(num)
+end
+function str(string)
+    if not string then return end
+    return tostring(string)
+end
+function wt(num)
+    if not num then return task.wait() end
+    return task.wait(int(num))
+end
+function ffc(obj, child)
+    if not obj or not child then return end
+    return obj:FindFirstChild(str(child))
+end
+function wfc(obj, child)
+    if not obj or not child then return end
+    return obj:WaitForChild(str(child), 9)
+end
+function wfh(mob)
+    if not mob then return end
+    return wfc(mob.Character, "Humanoid")
+end
+function wfhrp(mob)
+    if not mob then return end
+    return wfc(mob.Character, "HumanoidRootPart")
+end
+function checkmon(mob)
+    if not mob then return end
+    if mob and ffc(mob.Character, "Humanoid") and mob.Character.Humanoid.Health > 0 and ffc(mob.Character, "HumanoidRootPart") then
+        return true
+    end
+    return
+end
+function inv(obj, child)
+    if not obj or not child then return end
+    return obj:InvokeServer(unpack(child))
+end
+
+function checkfruit(targcheck)
+    local pdf = targcheck and ffc(targcheck, "Data") and ffc(targcheck.Data, 'DevilFruit') and targcheck.Data.DevilFruit.Value
+    for _, v in Config["Skip"]["Fruit"]["List"] do 
+        if str(v) == str(pdf) then 
+            return true
+        end
+    end
+    return false
+end
+
+function findtarget()
+    table.insert(Bounty.Checked, Bounty.Targ)
+    Bounty.CanUseWeapon = false
+    Bounty.CanUseSkill = false
+    if Config["Chat Kill"]["Enabled"] then
+        ffc(wfc(rs, "DefaultChatSystemChatEvents"), "SayMessageRequest"):FireServer(Config["Chat Kill"]["Message"][math.random(1, #Config["Chat Kill"]["Message"])], "All")
+    end
+    if not Bounty.Hop then
+        a, b = nil, math.huge
+        for i, v in plrs:GetChildren() do
+            if v ~= lp and v ~= a and v.Team and string.find(str(v.Team.Name), "es") and not table.find(Bounty.Checked, v)
+            and (str(lp.Team.Name) == "Pirates" or str(v.Team.Name) == "Pirates") and math.abs(lp.Data.Level.Value - v.Data.Level.Value) < 600
+            and (not Config["Skip"]["Fruit"]["Enabled"] or not checkfruit(v)) 
+            and (not Config["Skip"]["V4"] or not (ffc(v.Backpack, "Awakening") or ffc(v.Character, "Awakening")))
+            and cd(getSpawn(wfhrp(v).CFrame), wfhrp(v).CFrame) <= 3000 and not ffc(v.Character, "TempSafeZone") and checkmon(v) then
+                a = v
+                b = cd(wfhrp(v).CFrame, wfhrp(lp).CFrame)
+            end
+        end
+        if a ~= nil then
+            Bounty.Targ = a
+            return false
+        end
+    end
+    Bounty.Hop = true
+    Hop()
+    return false
+end
+
+function checknotify(msg, msg1)
+    msg1 = msg1 or ""
+    for i, v in pairs(lp.PlayerGui.Notifications:GetChildren()) do
+        if v and v.Text and string.find(string.lower(v.Text), string.lower(msg)) and string.find(string.lower(v.Text), string.lower(msg1)) then
+            v:Destroy()
+            return true
+        end
+    end
+    return false
+end
+
+function checkraid(target)
+    if ffc(workspace["_WorldOrigin"].Locations, "Island 1") then
+        if cd(wfhrp(target).CFrame, workspace["_WorldOrigin"].Locations["Island 1"].CFrame) < 3000 then 
+            return true 
+        end 
+    end 
+    return false
+end
+
+function checksafezone(pos)
+    for _, v in workspace._WorldOrigin.SafeZones:GetChildren() do
+        if cd(v.CFrame, pos) < (v.Mesh.Scale.Magnitude / 2) then
+            return true
+        end
+    end
+    return false
+end  
+
+local oldtarg = Bounty.Targ
+local oldtime = tick()
+local oldspamskill = tick()
+local startuse = false
+
+function checktarg()
+    if not checkmon(Bounty.Targ) then
+        return findtarget()
+    end
+    if checksafezone(wfhrp(Bounty.Targ).CFrame) then
+        return findtarget()
+    end
+    if checkraid(Bounty.Targ) then
+        return findtarget()
+    end
+    if Bounty.Targ == oldtarg then
+        if Bounty.UsingSkill and not startuse then
+            oldspamskill = tick()
+            startuse = true
+        end
+        if startuse and (tick() - oldspamskill) >= 3 and not (Bounty.Targ.Character:GetAttribute("InCombat") == 0 or Bounty.Targ.Character:GetAttribute("InCombat") == 1) then
+            return findtarget()
+        end
+    else
+        startuse = false
+        oldtarg = Bounty.Targ
+    end
+    return true
+end
+
+if not Bounty or not Bounty.CFrameTarget or not Bounty.Digit or not Bounty.Digit.Position then
+    warn("Gold Hup - Auto Bounty!")
+    return
+end
+
+local player = game.Players.LocalPlayer
+local Mouse = player:GetMouse()
+
+local oldIndex
+
+oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, Index)
+    if self == Mouse then
+        if type(Index) == "string" and Index:lower() == "hit" then
+            return Bounty.CFrameTarget or Mouse.Hit
+        end
+    end
+    return oldIndex(self, Index)
+end))
+
+spawn(function()
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(...)
+        local args = {...}
+        local method = getnamecallmethod()
+        if tostring(method) == "FireServer" then
+            if args[1] and tostring(args[1]) == "RemoteEvent" then
+                if args[2] and tostring(args[2]) ~= "true" and tostring(args[2]) ~= "false" then
+                    args[2] = Bounty.Digit.Position or args[2]
+                    return oldNamecall(table.unpack(args))
+                end
+            end
+        end
+        return oldNamecall(...)
+    end)
+    
+    setreadonly(mt, true)
+end)
+
+
+local oldtw = tick()
+spawn(function()
+    while wt() do
+        if checktarg() then
+            if (not (game.Players.LocalPlayer.Character:FindFirstChild("HasBuso"))) then
+                local rel = game.ReplicatedStorage
+                rel.Remotes.CommF_:InvokeServer("Buso")
+            end
+            if ffc(lp, "PlayerGui") and ffc(lp.PlayerGui, "ScreenGui") and ffc(lp.PlayerGui.ScreenGui, "ImageLabel") then
+            else
+                game:service("VirtualUser"):CaptureController()
+                game:service("VirtualUser"):SetKeyDown("0x65")
+                game:service("VirtualUser"):SetKeyUp("0x65")
+            end
+            if ffc(workspace._WorldOrigin.Locations, "Dimensional Rift") and (workspace._WorldOrigin.Locations["Dimensional Rift"].Position - wfhrp(lp).Position).Magnitude <= 1000 and (wfhrp(Bounty.Targ).Position - workspace._WorldOrigin.Locations["Dimensional Rift"].Position).Magnitude <= 1000 then
+                Bounty.CanUseWeapon = false
+                Bounty.CanUseSkill = false
+                to(CFrame.new(workspace._WorldOrigin.Locations["Dimensional Rift"].Position + Vector3.new(0, 190, 0)))
+            else
+                if tonumber(wfh(lp).Health) > 0 and (tonumber(wfh(lp).Health) < (Config["Panic % Health"][1] / 100 * tonumber(wfh(lp).MaxHealth)))
+                or (hide and tonumber(wfh(lp).Health) < (Config["Panic % Health"][2] / 100 * tonumber(wfh(lp).MaxHealth))) then
+                    Bounty.CanUseWeapon = false
+                    Bounty.CanUseSkill = false
+                    hide = true
+                    randomy = math.random(3000, 7000)
+                    if Config["Custom Y Run"].Enabled then
+                        randomy = Config["Custom Y Run"]["Y Run"]
+                    end
+                    to(CFrame.new(wfhrp(Bounty.Targ).Position + Vector3.new(0, randomy, 0)))
+                else
+                    hide = false
+                    Bounty.CFrameTarget = wfhrp(Bounty.Targ).CFrame
+                    if tick() - oldtw >= 0.05 then
+                        Bounty.Digit = Bounty.CFrameTarget + wfhrp(Bounty.Targ).Velocity / 2
+                    end
+                    if Bounty.Digit.Y < 5 then 
+                        Bounty.Digit = CFrame.new(Bounty.Digit.X, 5, Bounty.Digit.Z) 
+                    end 
+                    if (wfhrp(lp).Position - Bounty.CFrameTarget.Position).Magnitude <= 80 then
+                        if not ffc(Bounty.Targ.Character, "Busy") or not Bounty.Targ.Character.Busy.Value then
+                            Bounty.CanUseWeapon = true
+                            Bounty.CanUseSkill = true
+                        else
+                            Bounty.CanUseWeapon = true
+                            Bounty.CanUseSkill = false
+                        end
+                        if Config["Hunt Method"]["Use Move Predict"] then
+                            if Config["Hunt Method"]["Hit and Run"] then
+                                if Bounty.UsingSkill then
+                                    to(Bounty.Digit + Vector3.new(0, 4, 4))
+                                else
+                                    to(Bounty.Digit + Vector3.new(0, 30, 0))
+                                end
+                            else
+                                to(Bounty.Digit + Vector3.new(0, 4, 4))
+                            end
+                        else
+                            if Config["Hunt Method"]["Hit and Run"] then
+                                if Bounty.UsingSkill then
+                                    to(Bounty.CFrameTarget + Vector3.new(0, 4, 4))
+                                else
+                                    to(Bounty.CFrameTarget + Vector3.new(0, 30, 0))
+                                end
+                            else
+                                to(Bounty.CFrameTarget + Vector3.new(0, 4, 4))
+                            end
+                        end
+                    else
+                        to(Bounty.CFrameTarget + Vector3.new(0, 4, 4))
+                        Bounty.CanUseSkill = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local races = { 
+    ["Human"] = "Last Resort", 
+    ["Mink"] = "Agility", 
+    ["Fishman"] = "Water Body", 
+    ["Skypea"] = "Heavenly Blood", 
+    ["Ghoul"] = "Heightened Senses",
+    ["Cyborg"] = "Energy Core",
+    ["Draco"] = "Primordial Reign"
+} 
+local killcount = 0
+local attackbool = false
+spawn(function()
+    while wt() do
+        if ffc(lp.Character, "RaceTransformed") and ffc(lp.Character, "RaceEnergy") and lp.Character.RaceEnergy.Value >= 1 and not lp.Character.RaceTransformed.Value then
+            down("Y", 0)
+        end
+        if lp.PlayerGui.Main.PvpDisabled.Visible == true then
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EnablePvp")
+        end
+        if Bounty.CanUseWeapon then
+            if not ffc(lp.Character, races[lp.Data.Race.Value]) and inv(game.ReplicatedStorage.Remotes.CommF_, {"Wenlocktoad", "1"}) == -2 then
+                down("T", 0)
+            end
+            if Config["Spam All Skill On V4"].Enabled and ffc(lp.Character, "RaceTransformed") and ffc(lp.Character, "RaceTransformed").Value then
+                for _, v in Config["Spam All Skill On V4"]["Weapons"] do 
+                    if Bounty.CanUseSkill then
+                        EqWeapon = equip(v)
+                        Bounty.WeaponUsing = EqWeapon
+                        Bounty.ToolTipUsing = v
+                        
+                        Bounty.UsingSkill = true
+                        if EqWeapon and Config.Items[v].Enable then
+                            wt(Config.Items[v].Delay)
+                            for k, skill in pairs(Config.Items[v].Skills) do
+                                if Bounty.CanUseSkill and skill.Enable and ffc(lp.PlayerGui.Main.Skills[EqWeapon], k) 
+                                and ((lp.Data.Race.Value == "Ghoul" and ffc(lp.Character, "Heightened Senses") and lp.PlayerGui.Main.Skills[EqWeapon][k].Cooldown.Size.X.Scale <= 0.4) 
+                                or lp.PlayerGui.Main.Skills[EqWeapon][k].Cooldown.Size.X.Scale <= 0) then
+                                    down(k, skill.HoldTime)
+                                    repeat wt()
+                                    until ffc(lp.Character, "Busy") and not lp.Character.Busy.Value
+                                    killcount = killcount + 1
+                                end
+                            end
+                        end
+                        attackbool = true
+                        wt(0.25)
+                        Bounty.UsingSkill = false
+                        attackbool = false
+                    end
+                end
+            else
+                for _, v in Config.Items.Use do
+                    if Bounty.CanUseSkill then
+                        EqWeapon = equip(v)
+                        Bounty.WeaponUsing = EqWeapon
+                        Bounty.ToolTipUsing = v
+
+                        Bounty.UsingSkill = true
+                        if EqWeapon and Config.Items[v].Enable then
+                            wt(Config.Items[v].Delay)
+                            for k, skill in pairs(Config.Items[v].Skills) do
+                                if Bounty.CanUseSkill and skill.Enable and ffc(lp.PlayerGui.Main.Skills[EqWeapon], k) 
+                                and ((lp.Data.Race.Value == "Ghoul" and ffc(lp.Character, "Heightened Senses") and lp.PlayerGui.Main.Skills[EqWeapon][k].Cooldown.Size.X.Scale <= 0.4) 
+                                or lp.PlayerGui.Main.Skills[EqWeapon][k].Cooldown.Size.X.Scale <= 0) then
+                                    down(k, skill.HoldTime)
+                                    repeat wt()
+                                    until ffc(lp.Character, "Busy") and not lp.Character.Busy.Value
+                                    killcount = killcount + 1
+                                end
+                            end
+                        end
+                        attackbool = true
+                        wt(0.25)
+                        Bounty.UsingSkill = true
+                        attackbool = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local u5 = require(rs:WaitForChild("Notification"))
+        spawn(function()
+            while wt() do
+                u5.new("<Color=Yellow>Report Bugs Or Suggest Dms<Color=/>"):Display()
+                u5.new("<Color=Yellow>Discord :ryo_2504<Color=/>"):Display() 
+                u5.new("<Color=Yellow>ID Discord : 763681373898276874<Color=/>"):Display() 
+                u5.new("<Color=Yellow>Server Discord : discord.gg/CNJJR9HtXs<Color=/>"):Display() 
+                u5.new("<Color=Yellow>Join Server Check Update<Color=/>"):Display() 
+                wt(20)
+            end
+        end)
+
+ClickGun = function(target)
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    wait()
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+end
+
+local module = {
+  NextAttack = 0,
+  Distance = 100,
+  attackMobs = false,
+  attackPlayers = true
+}
+
+function module:GetBladeHits()
+  local BladeHits = {}
+  local Client = game.Players.LocalPlayer
+  local Characters = game:GetService("Workspace").Characters:GetChildren()
+  
+  for i, v in pairs(Characters) do
+    local Human = v:FindFirstChildOfClass("Humanoid")
+    if v.Name ~= game.Players.LocalPlayer.Name and Human and Human.RootPart and Human.Health > 0 and Client:DistanceFromCharacter(Human.RootPart.Position) < self.Distance then
+      table.insert(BladeHits, Human)
+    end
+  end
+
+  local Enemies = game:GetService("Workspace").Enemies:GetChildren()
+  for i, v in pairs(Enemies) do
+    local Human = v:FindFirstChildOfClass("Humanoid")
+    if Human and Human.RootPart and Human.Health > 0 and Client:DistanceFromCharacter(Human.RootPart.Position) < self.Distance then
+      table.insert(BladeHits, Human)
+    end
+  end
+  
+  return BladeHits
+end
+
+function module:attack()
+  local BladeHits = self:GetBladeHits()
+
+  if getgenv().Config.Items.Gun.Enable then
+    for _, target in pairs(BladeHits) do
+      ClickGun(target)
+    end
+  end
+
+  game:GetService("ReplicatedStorage").Modules.Net:WaitForChild("RE/RegisterAttack"):FireServer(0)
+  for _, Hit in pairs(BladeHits) do
+    game:GetService("ReplicatedStorage").Modules.Net:WaitForChild("RE/RegisterHit"):FireServer(Hit)
+  end
+end
+
+spawn(function()
+    while wt() do
+        if attackbool then
+            wt(getgenv().Config["Misc"]["ClickDelay"])
+            module:attack()
+        end
+    end
+end)
+
+lp.Idled:connect(function()
+    game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    wt(1)
+    game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+
+
+--// Random Fruit
+_G.RandomFruits = true
+if _G.RandomFruits then
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Cousin","Buy")
+    for i,v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        if v:IsA("Tool") and string.find(v.Name, "Fruit") then
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit",v:GetAttribute("OriginalName"),v)
+        end
+    end
+    for i,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+        if v:IsA("Tool") and string.find(v.Name, "Fruit") then
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit",v:GetAttribute("OriginalName"),v)
+        end
+    end
+end
+
+_G.LockCam = true
+
+local targetPlayer = enemy
+                if targetPlayer and _G.LockCam then
+                    local targetCharacter = targetPlayer.Character
+                    if targetCharacter then
+                        game.Workspace.CurrentCamera.CFrame = CFrame.new(game.Workspace.CurrentCamera.CFrame.Position, targetCharacter.HumanoidRootPart.Position)
+                    end
+                end
+
+CamFarm = getgenv().Config.Misc["Cam Farm"]
+if CamFarm == false then
+    game.Players.LocalPlayer.CameraMinZoomDistance = 127
+    game.Players.LocalPlayer.CameraMaxZoomDistance = 127
+    game.Players.LocalPlayer.CameraMaxZoomDistance = 127
+    game.Players.LocalPlayer.CameraMinZoomDistance = 0
+else
+    CamFarm = true
+    game.Players.LocalPlayer.CameraMinZoomDistance = 0
+    game.Players.LocalPlayer.CameraMaxZoomDistance = 0
+    game.Players.LocalPlayer.CameraMaxZoomDistance = 127
+    game.Players.LocalPlayer.CameraMinZoomDistance = 0
+end
+
+if getgenv().Config.Misc["Hide Map"] or TransparencyMap then
+    for i, v in pairs(_vv2:GetDescendants()) do
+        if (v:IsA("Part") or v:IsA("BasePart") or v:IsA("MeshPart")) and v.Transparency ~= 1 then
+            v.Transparency = 1
+        end
+    end
+    print("TransparencyMap done")
+end
+
+if getgenv().Config.Misc["White Screen"] == true then
+    game:GetService("RunService"):Set3dRenderingEnabled(false)
+elseif getgenv().Config.Misc["White Screen"] == false then
+    game:GetService("RunService"):Set3dRenderingEnabled(true)
+        end
+
+local playerGui = game:GetService("Players").LocalPlayer.PlayerGui.Main
+
+if getgenv().Config.Misc["HightLight Mode"] then
+    playerGui.Beli.Visible = false
+    playerGui.HP.Visible = false
+    playerGui.Energy.Visible = false
+    playerGui.StatsButton.Visible = false
+    playerGui.ShopButton.Visible = false
+    playerGui.Skills.Visible = false
+    playerGui.Level.Visible = false
+    playerGui.MenuButton.Visible = false
+    playerGui.Code.Visible = false
+    playerGui.Settings.Visible = false
+    playerGui.Mute.Visible = false
+    playerGui.CrewButton.Visible = false
+else
+    playerGui.Beli.Visible = true
+    playerGui.HP.Visible = false 
+    playerGui.Energy.Visible = true
+    playerGui.StatsButton.Visible = true
+    playerGui.ShopButton.Visible = true
+    playerGui.Skills.Visible = true
+    playerGui.Level.Visible = true
+    playerGui.MenuButton.Visible = true
+    playerGui.Code.Visible = true
+    playerGui.Settings.Visible = true
+    playerGui.Mute.Visible = true
+    playerGui.CrewButton.Visible = true
+end
+
+--// Gui
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local DropShadowHolder = Instance.new("Frame")
+local DropShadow = Instance.new("ImageLabel")
+local ScriptName = Instance.new("TextLabel")
+local Logo = Instance.new("ImageLabel")
+local ClickSkipTarget = Instance.new("TextButton")
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+MainFrame.Name = "Main"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(84, 84, 84)
+MainFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -106, 0, 10)
+MainFrame.Size = UDim2.new(0, 213, 0, 61)
+
+UICorner.Parent = MainFrame
+
+DropShadowHolder.Name = "DropShadowHolder"
+DropShadowHolder.Parent = MainFrame
+DropShadowHolder.BackgroundTransparency = 1.000
+DropShadowHolder.BorderSizePixel = 0
+DropShadowHolder.Size = UDim2.new(1, 0, 1, 0)
+DropShadowHolder.ZIndex = 0
+
+DropShadow.Name = "DropShadow"
+DropShadow.Parent = DropShadowHolder
+DropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+DropShadow.BackgroundTransparency = 1.000
+DropShadow.BorderSizePixel = 0
+DropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+DropShadow.Size = UDim2.new(1, 47, 1, 47)
+DropShadow.ZIndex = 0
+DropShadow.Image = "rbxassetid://6014261993"
+DropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+DropShadow.ImageTransparency = 0.500
+DropShadow.ScaleType = Enum.ScaleType.Slice
+DropShadow.SliceCenter = Rect.new(49, 49, 450, 450)
+
+ScriptName.Name = "ScriptName"
+ScriptName.Parent = MainFrame
+ScriptName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ScriptName.BackgroundTransparency = 1.000
+ScriptName.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ScriptName.BorderSizePixel = 0
+ScriptName.Position = UDim2.new(0, 66, 0, 0)
+ScriptName.Size = UDim2.new(0, 80, 0, 36)
+ScriptName.Font = Enum.Font.FredokaOne
+ScriptName.Text = "Gold Hup"
+ScriptName.TextColor3 = Color3.fromRGB(178, 218, 255)
+ScriptName.TextSize = 17.000
+ScriptName.TextXAlignment = Enum.TextXAlignment.Left
+
+Logo.Name = "Logo"
+Logo.Parent = MainFrame
+Logo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Logo.BackgroundTransparency = 1.000
+Logo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Logo.BorderSizePixel = 0
+Logo.Position = UDim2.new(0.00469483575, 5, 0.0836065337, 0)
+Logo.Size = UDim2.new(0, 50, 0, 50)
+Logo.Image = "rbxassetid://102931447225234"
+
+ClickSkipTarget.Name = "ClickSkipTarget"
+ClickSkipTarget.Parent = MainFrame
+ClickSkipTarget.Active = false
+ClickSkipTarget.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ClickSkipTarget.BackgroundTransparency = 1.000
+ClickSkipTarget.BorderColor3 = Color3.fromRGB(0, 0, 0)
+ClickSkipTarget.BorderSizePixel = 0
+ClickSkipTarget.Position = UDim2.new(0, 66, 0, 23)
+ClickSkipTarget.Selectable = false
+ClickSkipTarget.Size = UDim2.new(0, 147, 0, 31)
+ClickSkipTarget.Font = Enum.Font.FredokaOne
+ClickSkipTarget.Text = "Click here to skip target"
+ClickSkipTarget.TextColor3 = Color3.fromRGB(117, 117, 117)
+ClickSkipTarget.TextSize = 13.000
+ClickSkipTarget.TextXAlignment = Enum.TextXAlignment.Left
+
+--// Edit Gui
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+function MakeDraggable(topbarobject, object)
+	local Dragging = nil
+	local DragInput = nil
+	local DragStart = nil
+	local StartPosition = nil
+
+	function Update(input)
+		local Delta = input.Position - DragStart
+		local pos =
+			UDim2.new(
+				StartPosition.X.Scale,
+				StartPosition.X.Offset + Delta.X,
+				StartPosition.Y.Scale,
+				StartPosition.Y.Offset + Delta.Y
+			)
+		local Tween = TweenService:Create(object, TweenInfo.new(0.2), {Position = pos})
+		Tween:Play()
+	end
+
+	topbarobject.InputBegan:Connect(
+		function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				Dragging = true
+				DragStart = input.Position
+				StartPosition = object.Position
+
+				input.Changed:Connect(
+					function()
+						if input.UserInputState == Enum.UserInputState.End then
+							Dragging = false
+						end
+					end
+				)
+			end
+		end
+	)
+
+	topbarobject.InputChanged:Connect(
+		function(input)
+			if
+				input.UserInputType == Enum.UserInputType.MouseMovement or
+				input.UserInputType == Enum.UserInputType.Touch
+			then
+				DragInput = input
+			end
+		end
+	)
+
+	UserInputService.InputChanged:Connect(
+		function(input)
+			if input == DragInput and Dragging then
+				Update(input)
+			end
+		end
+	)
+end
+MakeDraggable(MainFrame, MainFrame)
+ClickSkipTarget.MouseButton1Down:Connect(function()
+    findtarget()
+end)
+
+local foldername = "Gold Hub AUTOBOUNTY"
+local filename = foldername.."/Config.json"
+function saveSettings()
+    local HttpService = game:GetService("HttpService")
+    local json = HttpService:JSONEncode(_G)
+    if true then
+        if isfolder(foldername) then
+            if isfile(filename) then
+                writefile(filename, json)
+            else
+                writefile(filename, json)
+            end
+        else
+            makefolder(foldername)
+        end
+    end
+end
+function loadSettings()
+    local HttpService = game:GetService("HttpService")
+    if isfolder(foldername) then
+        if isfile(filename) then
+            _G = HttpService:JSONDecode(readfile(filename))
+        end
+    end
+end
+
+    loadSettings()
