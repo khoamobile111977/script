@@ -1,0 +1,162 @@
+-- Tạo ScreenGui để chứa các UI elements
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GameUtilityGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Tạo Frame chính để chứa tất cả các elements
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.95, -200, 0.05, 0) -- Góc trên bên phải
+MainFrame.BackgroundTransparency = 1
+MainFrame.Parent = ScreenGui
+
+-- Tạo TextButton để làm nút Reset
+local ResetButton = Instance.new("TextButton")
+ResetButton.Name = "ResetButton"
+ResetButton.Size = UDim2.new(0, 80, 0, 30)
+ResetButton.Position = UDim2.new(1, -80, 0, 0)
+ResetButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ResetButton.Text = "Reset"
+ResetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ResetButton.Font = Enum.Font.SourceSansBold
+ResetButton.TextSize = 16
+ResetButton.BorderSizePixel = 0
+ResetButton.AutoButtonColor = true
+ResetButton.Parent = MainFrame
+
+-- Tạo TextBox để nhập JobID
+local JobIDInput = Instance.new("TextBox")
+JobIDInput.Name = "JobIDInput"
+JobIDInput.Size = UDim2.new(1, -90, 0, 30)
+JobIDInput.Position = UDim2.new(0, 0, 0, 40)
+JobIDInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+JobIDInput.PlaceholderText = "Enter Job ID..."
+JobIDInput.Text = ""
+JobIDInput.TextColor3 = Color3.fromRGB(0, 0, 0)
+JobIDInput.Font = Enum.Font.SourceSans
+JobIDInput.TextSize = 14
+JobIDInput.ClearTextOnFocus = false
+JobIDInput.Parent = MainFrame
+
+-- Tạo nút Join Server
+local JoinButton = Instance.new("TextButton")
+JoinButton.Name = "JoinButton"
+JoinButton.Size = UDim2.new(0, 80, 0, 30)
+JoinButton.Position = UDim2.new(1, -80, 0, 40)
+JoinButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+JoinButton.Text = "Join"
+JoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+JoinButton.Font = Enum.Font.SourceSansBold
+JoinButton.TextSize = 16
+JoinButton.BorderSizePixel = 0
+JoinButton.AutoButtonColor = true
+JoinButton.Parent = MainFrame
+
+-- Tạo nút Less People
+local LessPeopleButton = Instance.new("TextButton")
+LessPeopleButton.Name = "LessPeopleButton"
+LessPeopleButton.Size = UDim2.new(1, 0, 0, 30)
+LessPeopleButton.Position = UDim2.new(0, 0, 0, 80)
+LessPeopleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+LessPeopleButton.Text = "Join Less People Server"
+LessPeopleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LessPeopleButton.Font = Enum.Font.SourceSansBold
+LessPeopleButton.TextSize = 16
+LessPeopleButton.BorderSizePixel = 0
+LessPeopleButton.AutoButtonColor = true
+LessPeopleButton.Parent = MainFrame
+
+-- Thêm UICorner cho tất cả các buttons và input
+local function addCorners(instance)
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = instance
+end
+
+addCorners(ResetButton)
+addCorners(JobIDInput)
+addCorners(JoinButton)
+addCorners(LessPeopleButton)
+
+-- Thêm hiệu ứng hover cho các buttons
+local function addHoverEffect(button, originalColor)
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = originalColor:Lerp(Color3.fromRGB(0, 0, 0), 0.2)
+    end)
+    
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = originalColor
+    end)
+end
+
+addHoverEffect(ResetButton, Color3.fromRGB(255, 0, 0))
+addHoverEffect(JoinButton, Color3.fromRGB(0, 170, 255))
+addHoverEffect(LessPeopleButton, Color3.fromRGB(0, 255, 127))
+
+-- Xử lý sự kiện Reset Character
+ResetButton.MouseButton1Click:Connect(function()
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        character:BreakJoints()
+    end
+end)
+
+-- Xử lý sự kiện Join by JobID
+JoinButton.MouseButton1Click:Connect(function()
+    local jobId = JobIDInput.Text
+    if jobId and jobId ~= "" then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, jobId)
+    else
+        -- Hiển thị thông báo lỗi nếu không có JobID
+        JobIDInput.PlaceholderText = "Please enter a Job ID!"
+        wait(2)
+        JobIDInput.PlaceholderText = "Enter Job ID..."
+    end
+end)
+
+-- Xử lý sự kiện Less People
+LessPeopleButton.MouseButton1Click:Connect(function()
+    local TeleportService = game:GetService("TeleportService")
+    local servers = {}
+    
+    -- Lấy danh sách các server có ít người
+    local success, result = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+    end)
+    
+    if success then
+        for _, server in ipairs(result.data) do
+            if server.playing < 4 then -- Kiểm tra server có ít hơn 4 người
+                table.insert(servers, server)
+            end
+        end
+        
+        -- Chọn ngẫu nhiên một server trong danh sách và teleport
+        if #servers > 0 then
+            local randomServer = servers[math.random(1, #servers)]
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer.id)
+        else
+            -- Hiển thị thông báo nếu không tìm thấy server phù hợp
+            LessPeopleButton.Text = "No servers found!"
+            wait(2)
+            LessPeopleButton.Text = "Join Less People Server"
+        end
+    end
+end)
+
+-- Script sẽ chạy trong LocalScript
+local function onPlayerAdded(player)
+    if player == game.Players.LocalPlayer then
+        player.CharacterAdded:Connect(function()
+            ScreenGui.Enabled = true
+        end)
+    end
+end
+
+if game.Players.LocalPlayer then
+    onPlayerAdded(game.Players.LocalPlayer)
+end
+
+game.Players.PlayerAdded:Connect(onPlayerAdded)
