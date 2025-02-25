@@ -65,420 +65,79 @@ local function require(Module:ModuleScript)
 	return G2L_REQUIRE(Module);
 end
 
+-- Remove existing UI code
+-- G2L["0"] = Instance.new("ScreenGui")
+-- G2L["1"] = Instance.new("Frame")
+-- ...existing code...
+-- G2L["17"] = Instance.new("UICorner")
 
-G2L["0"] = Instance.new("ScreenGui")
-G2L["1"] = Instance.new("Frame")
-G2L["2"] = Instance.new("Frame")
-G2L["3"] = Instance.new("UICorner")
-G2L["4"] = Instance.new("Frame")
-G2L["5"] = Instance.new("TextLabel")
-G2L["6"] = Instance.new("TextLabel")
-G2L["7"] = Instance.new("TextLabel")
-G2L["8"] = Instance.new("ImageLabel")
-G2L["9"] = Instance.new("TextLabel")
-G2L["10"] = Instance.new("ImageLabel")
-G2L["11"] = Instance.new("TextLabel")
-G2L["12"] = Instance.new("ImageLabel")
-G2L["13"] = Instance.new("TextLabel")
-G2L["14"] = Instance.new("ImageLabel")
-G2L["15"] = Instance.new("TextLabel")
-G2L["16"] = Instance.new("ImageLabel")
-G2L["17"] = Instance.new("UICorner")
+-- Add new UI
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local FPSText = Instance.new("TextLabel")
+local TimeText = Instance.new("TextLabel")
+local FruitText = Instance.new("TextLabel")
+local BossText = Instance.new("TextLabel")
 
+ScreenGui.Name = "MainGui"
+ScreenGui.Parent = game.Players.LocalPlayer.PlayerGui
 
-G2L["0"].Name = [[MainGui]]
-G2L["0"].Enabled = true
-G2L["0"].ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-G2L["0"].Parent = game.Players.LocalPlayer.PlayerGui
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.Position = UDim2.new(0.03, 0, 0.56, 0)
+MainFrame.Size = UDim2.new(0, 244, 0, 149)
 
-G2L["1"].Name = [[MainFarme]]
-G2L["1"].Active = false
-G2L["1"].AnchorPoint = Vector2.new(0, 0)
-G2L["1"].BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-G2L["1"].BackgroundTransparency = 0.2
-G2L["1"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["1"].BorderSizePixel = 0
-G2L["1"].ClipsDescendants = true
-G2L["1"].Draggable = false
-G2L["1"].Position = UDim2.new(0.030303031, 0, 0.5577618, 0)
-G2L["1"].Rotation = 0
-G2L["1"].Selectable = false
-G2L["1"].SelectionOrder = 0
-G2L["1"].Size = UDim2.new(0, 244, 0, 149)
-G2L["1"].Visible = true
-G2L["1"].ZIndex = 1
-G2L["1"].Parent = G2L["0"]
+FPSText.Name = "FPSText"
+FPSText.Parent = MainFrame
+FPSText.Font = Enum.Font.SourceSans
+FPSText.Text = "FPS: 0 | Ping: 0"
+FPSText.TextColor3 = Color3.fromRGB(255, 255, 255)
+FPSText.Position = UDim2.new(0, 0, 0, 0)
+FPSText.Size = UDim2.new(1, 0, 0, 30)
 
-G2L["2"].Name = [[FrameDebug]]
-G2L["2"].Active = false
-G2L["2"].AnchorPoint = Vector2.new(0, 0)
-G2L["2"].BackgroundColor3 = Color3.fromRGB(184, 0, 3)
-G2L["2"].BackgroundTransparency = 0
-G2L["2"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["2"].BorderSizePixel = 0
-G2L["2"].ClipsDescendants = false
-G2L["2"].Draggable = false
-G2L["2"].Position = UDim2.new(0, 0, 0, 0)
-G2L["2"].Rotation = 0
-G2L["2"].Selectable = false
-G2L["2"].SelectionOrder = 0
-G2L["2"].Size = UDim2.new(0, 244, 0, 20)
-G2L["2"].Visible = true
-G2L["2"].ZIndex = 1
-G2L["2"].Parent = G2L["1"]
+TimeText.Name = "TimeText"
+TimeText.Parent = MainFrame
+TimeText.Font = Enum.Font.SourceSans
+TimeText.Text = "Time Played: 0h 0m 0s"
+TimeText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimeText.Position = UDim2.new(0, 0, 0, 30)
+TimeText.Size = UDim2.new(1, 0, 0, 30)
 
-G2L["3"].Name = [[UICornerFrameDebug]]
-G2L["3"].CornerRadius = UDim.new(0, 8)
-G2L["3"].Parent = G2L["2"]
+FruitText.Name = "FruitText"
+FruitText.Parent = MainFrame
+FruitText.Font = Enum.Font.SourceSans
+FruitText.Text = "Fruit Spawned: ❌"
+FruitText.TextColor3 = Color3.fromRGB(255, 255, 255)
+FruitText.Position = UDim2.new(0, 0, 0, 60)
+FruitText.Size = UDim2.new(1, 0, 0, 30)
 
-G2L["4"].Name = [[DontCareToMuch]]
-G2L["4"].Active = false
-G2L["4"].AnchorPoint = Vector2.new(0, 0)
-G2L["4"].BackgroundColor3 = Color3.fromRGB(184, 0, 3)
-G2L["4"].BackgroundTransparency = 0.2
-G2L["4"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["4"].BorderSizePixel = 0
-G2L["4"].ClipsDescendants = false
-G2L["4"].Draggable = false
-G2L["4"].Position = UDim2.new(0, 0, 0.6315781, 0)
-G2L["4"].Rotation = 0
-G2L["4"].Selectable = false
-G2L["4"].SelectionOrder = 0
-G2L["4"].Size = UDim2.new(0, 268, 0, 7)
-G2L["4"].Visible = true
-G2L["4"].ZIndex = 1
-G2L["4"].Parent = G2L["2"]
+BossText.Name = "BossText"
+BossText.Parent = MainFrame
+BossText.Font = Enum.Font.SourceSans
+BossText.Text = "Boss Status: None"
+BossText.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossText.Position = UDim2.new(0, 0, 0, 90)
+BossText.Size = UDim2.new(1, 0, 0, 30)
 
-G2L["5"].Name = [[Title]]
-G2L["5"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["5"].Text = [[HOHO]]
-G2L["5"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["5"].TextScaled = false
-G2L["5"].TextSize = 15
-G2L["5"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["5"].TextStrokeTransparency = 1
-G2L["5"].TextWrapped = false
-G2L["5"].TextXAlignment = Enum.TextXAlignment.Center
-G2L["5"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["5"].Active = false
-G2L["5"].AnchorPoint = Vector2.new(0, 0)
-G2L["5"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["5"].BackgroundTransparency = 1
-G2L["5"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["5"].BorderSizePixel = 0
-G2L["5"].ClipsDescendants = false
-G2L["5"].Draggable = false
-G2L["5"].Position = UDim2.new(0, 0, 0, 0)
-G2L["5"].Rotation = 0
-G2L["5"].Selectable = false
-G2L["5"].SelectionOrder = 0
-G2L["5"].Size = UDim2.new(0, 73, 0, 19)
-G2L["5"].Visible = true
-G2L["5"].ZIndex = 1
-G2L["5"].Parent = G2L["2"]
-
-G2L["6"].Name = [[Debug]]
-G2L["6"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["6"].Text = [[DEBUG]]
-G2L["6"].TextColor3 = Color3.fromRGB(0, 0, 0)
-G2L["6"].TextScaled = false
-G2L["6"].TextSize = 15
-G2L["6"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["6"].TextStrokeTransparency = 1
-G2L["6"].TextWrapped = false
-G2L["6"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["6"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["6"].Active = false
-G2L["6"].AnchorPoint = Vector2.new(0, 0)
-G2L["6"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["6"].BackgroundTransparency = 1
-G2L["6"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["6"].BorderSizePixel = 0
-G2L["6"].ClipsDescendants = false
-G2L["6"].Draggable = false
-G2L["6"].Position = UDim2.new(0.23770492, 0, 0, 0)
-G2L["6"].Rotation = 0
-G2L["6"].Selectable = false
-G2L["6"].SelectionOrder = 0
-G2L["6"].Size = UDim2.new(0, 127, 0, 19)
-G2L["6"].Visible = true
-G2L["6"].ZIndex = 1
-G2L["6"].Parent = G2L["2"]
-
-G2L["7"].Name = [[status]]
-G2L["7"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["7"].Text = [[Loading...]]
-G2L["7"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["7"].TextScaled = false
-G2L["7"].TextSize = 15
-G2L["7"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["7"].TextStrokeTransparency = 1
-G2L["7"].TextWrapped = false
-G2L["7"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["7"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["7"].Active = false
-G2L["7"].AnchorPoint = Vector2.new(0, 0)
-G2L["7"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["7"].BackgroundTransparency = 1
-G2L["7"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["7"].BorderSizePixel = 0
-G2L["7"].ClipsDescendants = false
-G2L["7"].Draggable = false
-G2L["7"].Position = UDim2.new(0.094262294, 0, 1.3494738, 0)
-G2L["7"].Rotation = 0
-G2L["7"].Selectable = false
-G2L["7"].SelectionOrder = 0
-G2L["7"].Size = UDim2.new(0, 230, 0, 16)
-G2L["7"].Visible = true
-G2L["7"].ZIndex = 1
-G2L["7"].Parent = G2L["2"]
-
-G2L["8"].Name = [[Tick1]]
-G2L["8"].Image = [[rbxassetid://377245168]]
-G2L["8"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-G2L["8"].ScaleType = Enum.ScaleType.Stretch
-G2L["8"].SliceCenter = Rect.new(0, 0, 0, 0)
-G2L["8"].TileSize = UDim2.new(1, 0, 1, 0)
-G2L["8"].Active = false
-G2L["8"].AnchorPoint = Vector2.new(0, 0)
-G2L["8"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["8"].BackgroundTransparency = 1
-G2L["8"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["8"].BorderSizePixel = 0
-G2L["8"].ClipsDescendants = false
-G2L["8"].Draggable = false
-G2L["8"].Position = UDim2.new(-0.09271804, 0, -0.055921555, 0)
-G2L["8"].Rotation = 0
-G2L["8"].Selectable = false
-G2L["8"].SelectionOrder = 0
-G2L["8"].Size = UDim2.new(0, 15, 0, 15)
-G2L["8"].Visible = true
-G2L["8"].ZIndex = 1
-G2L["8"].Parent = G2L["7"]
-
-G2L["9"].Name = [[StatusAnthor]]
-G2L["9"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["9"].Text = [[FPS]]
-G2L["9"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["9"].TextScaled = false
-G2L["9"].TextSize = 15
-G2L["9"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["9"].TextStrokeTransparency = 1
-G2L["9"].TextWrapped = false
-G2L["9"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["9"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["9"].Active = false
-G2L["9"].AnchorPoint = Vector2.new(0, 0)
-G2L["9"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["9"].BackgroundTransparency = 1
-G2L["9"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["9"].BorderSizePixel = 0
-G2L["9"].ClipsDescendants = false
-G2L["9"].Draggable = false
-G2L["9"].Position = UDim2.new(0.094262294, 0, 2.4126318, 0)
-G2L["9"].Rotation = 0
-G2L["9"].Selectable = false
-G2L["9"].SelectionOrder = 0
-G2L["9"].Size = UDim2.new(0, 230, 0, 16)
-G2L["9"].Visible = true
-G2L["9"].ZIndex = 1
-G2L["9"].Parent = G2L["2"]
-
-G2L["10"].Name = [[Tick2]]
-G2L["10"].Image = [[rbxassetid://377245168]]
-G2L["10"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-G2L["10"].ScaleType = Enum.ScaleType.Stretch
-G2L["10"].SliceCenter = Rect.new(0, 0, 0, 0)
-G2L["10"].TileSize = UDim2.new(1, 0, 1, 0)
-G2L["10"].Active = false
-G2L["10"].AnchorPoint = Vector2.new(0, 0)
-G2L["10"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["10"].BackgroundTransparency = 1
-G2L["10"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["10"].BorderSizePixel = 0
-G2L["10"].ClipsDescendants = false
-G2L["10"].Draggable = false
-G2L["10"].Position = UDim2.new(-0.09480433, 0, 0.0625, 0)
-G2L["10"].Rotation = 0
-G2L["10"].Selectable = false
-G2L["10"].SelectionOrder = 0
-G2L["10"].Size = UDim2.new(0, 15, 0, 15)
-G2L["10"].Visible = true
-G2L["10"].ZIndex = 1
-G2L["10"].Parent = G2L["9"]
-
-G2L["11"].Name = [[Time]]
-G2L["11"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["11"].Text = [[Time]]
-G2L["11"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["11"].TextScaled = false
-G2L["11"].TextSize = 15
-G2L["11"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["11"].TextStrokeTransparency = 1
-G2L["11"].TextWrapped = false
-G2L["11"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["11"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["11"].Active = false
-G2L["11"].AnchorPoint = Vector2.new(0, 0)
-G2L["11"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["11"].BackgroundTransparency = 1
-G2L["11"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["11"].BorderSizePixel = 0
-G2L["11"].ClipsDescendants = false
-G2L["11"].Draggable = false
-G2L["11"].Position = UDim2.new(0.094262294, 0, 3.6063159, 0)
-G2L["11"].Rotation = 0
-G2L["11"].Selectable = false
-G2L["11"].SelectionOrder = 0
-G2L["11"].Size = UDim2.new(0, 230, 0, 16)
-G2L["11"].Visible = true
-G2L["11"].ZIndex = 1
-G2L["11"].Parent = G2L["2"]
-
-G2L["12"].Name = [[Tick3]]
-G2L["12"].Image = [[rbxassetid://377245168]]
-G2L["12"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-G2L["12"].ScaleType = Enum.ScaleType.Stretch
-G2L["12"].SliceCenter = Rect.new(0, 0, 0, 0)
-G2L["12"].TileSize = UDim2.new(1, 0, 1, 0)
-G2L["12"].Active = false
-G2L["12"].AnchorPoint = Vector2.new(0, 0)
-G2L["12"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["12"].BackgroundTransparency = 1
-G2L["12"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["12"].BorderSizePixel = 0
-G2L["12"].ClipsDescendants = false
-G2L["12"].Draggable = false
-G2L["12"].Position = UDim2.new(-0.09565217, 0, 0.0625, 0)
-G2L["12"].Rotation = 0
-G2L["12"].Selectable = false
-G2L["12"].SelectionOrder = 0
-G2L["12"].Size = UDim2.new(0, 15, 0, 15)
-G2L["12"].Visible = true
-G2L["12"].ZIndex = 1
-G2L["12"].Parent = G2L["11"]
-
-G2L["13"].Name = [[NextMoon]]
-G2L["13"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["13"].Text = [[Next 🌕]]
-G2L["13"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["13"].TextScaled = false
-G2L["13"].TextSize = 15
-G2L["13"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["13"].TextStrokeTransparency = 1
-G2L["13"].TextWrapped = false
-G2L["13"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["13"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["13"].Active = false
-G2L["13"].AnchorPoint = Vector2.new(0, 0)
-G2L["13"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["13"].BackgroundTransparency = 1
-G2L["13"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["13"].BorderSizePixel = 0
-G2L["13"].ClipsDescendants = false
-G2L["13"].Draggable = false
-G2L["13"].Position = UDim2.new(0.094262294, 0, 4.692631, 0)
-G2L["13"].Rotation = 0
-G2L["13"].Selectable = false
-G2L["13"].SelectionOrder = 0
-G2L["13"].Size = UDim2.new(0, 230, 0, 16)
-G2L["13"].Visible = true
-G2L["13"].ZIndex = 1
-G2L["13"].Parent = G2L["2"]
-
-G2L["14"].Name = [[Tick4]]
-G2L["14"].Image = [[rbxassetid://377245168]]
-G2L["14"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-G2L["14"].ScaleType = Enum.ScaleType.Stretch
-G2L["14"].SliceCenter = Rect.new(0, 0, 0, 0)
-G2L["14"].TileSize = UDim2.new(1, 0, 1, 0)
-G2L["14"].Active = false
-G2L["14"].AnchorPoint = Vector2.new(0, 0)
-G2L["14"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["14"].BackgroundTransparency = 1
-G2L["14"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["14"].BorderSizePixel = 0
-G2L["14"].ClipsDescendants = false
-G2L["14"].Draggable = false
-G2L["14"].Position = UDim2.new(-0.09565217, 0, 0, 0)
-G2L["14"].Rotation = 0
-G2L["14"].Selectable = false
-G2L["14"].SelectionOrder = 0
-G2L["14"].Size = UDim2.new(0, 15, 0, 15)
-G2L["14"].Visible = true
-G2L["14"].ZIndex = 1
-G2L["14"].Parent = G2L["13"]
-
-G2L["15"].Name = [[StatusFruit]]
-G2L["15"].FontFace = Font.new([[rbxasset://fonts/families/DenkOne.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-G2L["15"].Text = [[Fruit Spawned]]
-G2L["15"].TextColor3 = Color3.fromRGB(255, 255, 255)
-G2L["15"].TextScaled = false
-G2L["15"].TextSize = 15
-G2L["15"].TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-G2L["15"].TextStrokeTransparency = 1
-G2L["15"].TextWrapped = false
-G2L["15"].TextXAlignment = Enum.TextXAlignment.Left
-G2L["15"].TextYAlignment = Enum.TextYAlignment.Center
-G2L["15"].Active = false
-G2L["15"].AnchorPoint = Vector2.new(0, 0)
-G2L["15"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["15"].BackgroundTransparency = 1
-G2L["15"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["15"].BorderSizePixel = 0
-G2L["15"].ClipsDescendants = false
-G2L["15"].Draggable = false
-G2L["15"].Position = UDim2.new(0.094262294, 0, 5.783158, 0)
-G2L["15"].Rotation = 0
-G2L["15"].Selectable = false
-G2L["15"].SelectionOrder = 0
-G2L["15"].Size = UDim2.new(0, 230, 0, 16)
-G2L["15"].Visible = true
-G2L["15"].ZIndex = 1
-G2L["15"].Parent = G2L["2"]
-
-G2L["16"].Name = [[ImageLabel]]
-G2L["16"].Image = [[rbxassetid://377245168]]
-G2L["16"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-G2L["16"].ScaleType = Enum.ScaleType.Stretch
-G2L["16"].SliceCenter = Rect.new(0, 0, 0, 0)
-G2L["16"].TileSize = UDim2.new(1, 0, 1, 0)
-G2L["16"].Active = false
-G2L["16"].AnchorPoint = Vector2.new(0, 0)
-G2L["16"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-G2L["16"].BackgroundTransparency = 1
-G2L["16"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-G2L["16"].BorderSizePixel = 0
-G2L["16"].ClipsDescendants = false
-G2L["16"].Draggable = false
-G2L["16"].Position = UDim2.new(-0.09565217, 0, 0, 0)
-G2L["16"].Rotation = 0
-G2L["16"].Selectable = false
-G2L["16"].SelectionOrder = 0
-G2L["16"].Size = UDim2.new(0, 15, 0, 15)
-G2L["16"].Visible = true
-G2L["16"].ZIndex = 1
-G2L["16"].Parent = G2L["15"]
-
-G2L["17"].Name = [[UICornerMainFrame]]
-G2L["17"].CornerRadius = UDim.new(0, 8)
-G2L["17"].Parent = G2L["1"]
-
+-- Update FPS and Ping
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 
 RunService.RenderStepped:Connect(function(frame)
 	local fps = math.round(1 / frame)    
 	local pingValue = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-	G2L["9"].Text = "FPS: " .. fps .. " | Ping: " .. math.round(pingValue) "("
+	FPSText.Text = "FPS: " .. fps .. " | Ping: " .. math.round(pingValue)
 end)
 
+-- Update Time Played
 function setTime()
-	local GameTime = math.floor(workspace.DistributedGameTime+0.5)
-	local Hour = math.floor(GameTime/(60^2))%24
-	local Minute = math.floor(GameTime/(60^1))%60
-	local Second = math.floor(GameTime/(60^0))%60
-	G2L["11"].Text = ("Time Played : "..Hour.." Minute: "..Minute.." Second : "..Second)
+	local GameTime = math.floor(workspace.DistributedGameTime + 0.5)
+	local Hour = math.floor(GameTime / (60^2)) % 24
+	local Minute = math.floor(GameTime / (60^1)) % 60
+	local Second = math.floor(GameTime / (60^0)) % 60
+	TimeText.Text = ("Time Played: " .. Hour .. "h " .. Minute .. "m " .. Second .. "s")
 end
 
 spawn(function()
@@ -489,23 +148,28 @@ spawn(function()
 	end
 end)
 
-
+-- Update Fruit Status
 spawn(function()
 	pcall(function()
 		while wait(1) do  
 			local foundFruit = false
-			for i, v in pairs(game.Workspace:GetChildren()) do
+			for _, v in pairs(game.Workspace:GetChildren()) do
 				if string.find(v.Name, "Fruit") then
-					G2L["15"].Text = ("Fruit Spawned : " .. v.Name)
+					FruitText.Text = ("Fruit Spawned: " .. v.Name)
 					foundFruit = true
 				end
 			end
 			if not foundFruit then
-				G2L["15"].Text = ("Fruit Spawned : ".. "❌")
+				FruitText.Text = ("Fruit Spawned: ❌")
 			end
 		end
 	end)
-end)   
+end)
+
+-- Update Boss Status
+local function updateBossStatus(status)
+	BossText.Text = "Boss Status: " .. status
+end
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -684,3 +348,6 @@ spawn(function()
         end
     end
 end);
+
+-- Example usage of updateBossStatus
+updateBossStatus("Dough King Detected")
