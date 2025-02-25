@@ -40,9 +40,7 @@ local isFarming = false
 local hoverHeight = 25 -- Tăng chiều cao trên đầu boss
 local safeDistance = 20 -- Khoảng cách an toàn để tránh đòn đánh của boss
 local tweenSpeed = 300 -- Tốc độ tween cố định
-local currentTween = nil
-local lastPositionUpdate = 0
-local positionUpdateInterval = 0.5
+
 
 -- Fast Attack Implementation
 _G["L*12_34"] = false
@@ -122,40 +120,23 @@ local function UnlockCharacter()
 end
 
 local function TweenToPosition(targetCFrame)
-    local character = player.Character
-    if not character then return end
+    local humanoidRootPart = player.Character:WaitForChild("HumanoidRootPart")
+    -- Tạo vị trí mới với khoảng cách an toàn và độ cao
+    local safePosition = targetCFrame * CFrame.new(0, hoverHeight, -safeDistance)
     
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    -- Cancel existing tween to prevent conflicts
-    if currentTween then
-        currentTween:Cancel()
-        currentTween = nil
-    end
-    
-    -- Calculate a stable position relative to the boss
-    local offset = CFrame.new(0, hoverHeight, -safeDistance)
-    local safePosition = targetCFrame * offset
-    
-    -- Calculate tween duration based on distance for smooth movement
+    -- Tính toán khoảng cách để áp dụng tốc độ cố định
     local distance = (safePosition.Position - humanoidRootPart.Position).Magnitude
-    local tweenTime = math.min(distance / tweenSpeed, 10) -- Cap at 10 seconds max
+    local tweenTime = distance / tweenSpeed
     
-    -- Create and play the tween
-    currentTween = TweenService:Create(
-        humanoidRootPart, 
-        TweenInfo.new(
-            tweenTime, 
-            Enum.EasingStyle.Linear,
-            Enum.EasingDirection.Out
-        ),
+    -- Ensure HumanoidRootPart is not anchored during tween
+    humanoidRootPart.Anchored = false
+    
+    local tween = TweenService:Create(humanoidRootPart, 
+        TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
         {CFrame = safePosition}
     )
-    
-    currentTween:Play()
-    
-    -- Return the tween so we can track its completion
-    return currentTween
+    tween:Play()
+    return tween
 end
 
 local function EquipWeapon(weaponName)
@@ -170,77 +151,42 @@ local function FindBoss()
     return boss
 end
 
--- Improved boss following with better stability
-local function FollowBoss()
+-- Continuous Boss Following Function
+local function ContinuouslyFollowBoss()
     task.spawn(function()
         while isFarming do
-            local now = tick()
-            -- Only update position periodically to reduce jitter
-            if now - lastPositionUpdate >= positionUpdateInterval then
-                lastPositionUpdate = now
-                
-                local boss = FindBoss()
-                if boss and boss:FindFirstChild("HumanoidRootPart") then
-                    local bossHRP = boss:FindFirstChild("HumanoidRootPart")
-                    if bossHRP then
-                        -- Only tween if we're not already close enough
-                        local character = player.Character
-                        if character then
-                            local hrp = character:FindFirstChild("HumanoidRootPart")
-                            if hrp and (hrp.Position - bossHRP.Position).Magnitude > (safeDistance + 5) then
-                                TweenToPosition(bossHRP.CFrame)
-                            end
-                        end
-                    end
-                end
+            local boss = FindBoss()
+            if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                TweenToPosition(boss.HumanoidRootPart.CFrame)
             end
-            task.wait(0.05) -- Check more frequently but update position less frequently
+            task.wait(0.1) -- Kiểm tra và cập nhật vị trí mỗi 0.1 giây
         end
     end)
 end
 
--- Improved Farm Function
+-- Farm Function
 local function FarmBoss()
-    task.spawn(function()
-        while isFarming do
-            local boss = FindBoss()
+    while isFarming do
+        local boss = FindBoss()
+        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+            -- Lock character movement
+            LockCharacter()
             
-            if boss and boss:FindFirstChild("HumanoidRootPart") then
-                -- Stabilize character to prevent jittering
-                StabilizeCharacter()
-                
-                -- Equip weapon
-                EquipWeapon("Sharkman Karate")
-                
-                -- Start following boss with improved stability
-                FollowBoss()
-                
-                -- Attack logic
-                local isRealBoss = boss.Name == "Captain Elephant"
-                
-                while isFarming do
-                    if isRealBoss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health <= 0 then
-                        -- Boss is dead, wait for respawn
-                        break
-                    elseif not isRealBoss and workspace.Enemies:FindFirstChild("Captain Elephant") then
-                        -- Found real boss, switch to it
-                        break
-                    elseif not boss:IsDescendantOf(workspace) then
-                        -- Boss was removed from workspace
-                        break
-                    end
-                    
-                    -- Allow short wait between attack attempts for stability
-                    task.wait(0.1)
-                end
+            -- Equip weapon
+            EquipWeapon("Sharkman Karate")
+            
+            -- Start following boss
+            ContinuouslyFollowBoss()
+            
+            -- Attack while boss is alive
+            while boss.Humanoid.Health > 0 and isFarming do
+                task.wait(0.1)
             end
-            
-            task.wait(1)
         end
-        
-        -- Cleanup when farming stops
-        RestoreCharacter()
-    end)
+        task.wait(1)
+    end
+    -- Unlock character when farming stops
+    UnlockCharacter()
 end
 
 -- Main Tab
