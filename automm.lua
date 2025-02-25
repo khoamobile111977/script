@@ -1,3 +1,31 @@
+function setTeam(teamName)
+    local args = {
+        [1] = "SetTeam",
+        [2] = teamName
+    }
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+end
+
+_G.Select_Marines = true
+
+spawn(function()
+    while wait() do
+        if _G.Select_Pirates then
+            setTeam("Pirates")
+            _G.Select_Pirates = false  
+            break
+        end
+    end
+end)
+spawn(function()
+    while wait() do
+        if _G.Select_Marines then
+            setTeam("Marines")
+            _G.Select_Marines = false  
+            break
+        end
+    end
+end)
 if _G["L_12_34"] then
     local L_1A, L_2B, L_3C = game:GetService("ReplicatedStorage"), game:GetService("Players"), game.Players.LocalPlayer
     local L_4D = {L_5E = true, L_6F = 0.001, L_7G = 200, L_8H = 200}
