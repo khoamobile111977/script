@@ -23,7 +23,7 @@ spawn(function()
             setTeam("Marines")
             _G.Select_Marines = false  
             break
-        end
+        endI
     end
 end)
 local Players = game:GetService("Players")
@@ -37,12 +37,12 @@ local Window = OrionLib:MakeWindow({Name = "Boss Farm GUI", HidePremium = false,
 -- Variables
 local player = Players.LocalPlayer
 local isFarming = false
-local hoverHeight = 15 -- Reduced hover height for stability
-local safeDistance = 10 -- Reduced safe distance for better targeting
-local tweenSpeed = 300 -- Tween speed
-local currentTween = nil -- Track current tween to cancel if needed
-local lastPositionUpdate = 0 -- Track last position update time
-local positionUpdateInterval = 0.2 -- Update position every 0.2 seconds
+local hoverHeight = 25 -- Tăng chiều cao trên đầu boss
+local safeDistance = 20 -- Khoảng cách an toàn để tránh đòn đánh của boss
+local tweenSpeed = 300 -- Tốc độ tween cố định
+local currentTween = nil
+local lastPositionUpdate = 0
+local positionUpdateInterval = 0.5
 
 -- Fast Attack Implementation
 _G["L*12_34"] = false
@@ -101,79 +101,22 @@ local function EnableFastAttack()
     end
 end
 
--- Improved boss finder that works regardless of distance
-local function FindBossAnywhere()
-    -- First check workspace directly
-    local boss = workspace.Enemies:FindFirstChild("Captain Elephant")
-    if boss then return boss end
-    
-    -- If boss not found, try to get it from server through remotes
-    -- This method depends on the game's structure and may need adjustments
-    local args = {
-        [1] = "GetBossLocation",
-        [2] = "Captain Elephant"
-    }
-    
-    local bossPosition = ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(args))
-    if bossPosition and typeof(bossPosition) == "Vector3" then
-        -- If we got a position but no boss object, we'll create a temporary part
-        -- to represent the boss position until we get close enough
-        local tempPart = Instance.new("Part")
-        tempPart.Name = "TempBossMarker"
-        tempPart.Anchored = true
-        tempPart.CanCollide = false
-        tempPart.Transparency = 1
-        tempPart.Position = bossPosition
-        tempPart.Parent = workspace
-        
-        -- Create a HumanoidRootPart to mimic the real boss
-        local fakeHRP = Instance.new("Part")
-        fakeHRP.Name = "HumanoidRootPart"
-        fakeHRP.Anchored = true
-        fakeHRP.CanCollide = false
-        fakeHRP.Transparency = 1
-        fakeHRP.Position = bossPosition
-        fakeHRP.Parent = tempPart
-        
-        -- Create a Humanoid to mimic the real boss
-        local fakeHumanoid = Instance.new("Humanoid")
-        fakeHumanoid.Name = "Humanoid"
-        fakeHumanoid.Health = 100
-        fakeHumanoid.MaxHealth = 100
-        fakeHumanoid.Parent = tempPart
-        
-        -- Return the temp part as if it were the boss
-        return tempPart
-    end
-    
-    return nil
-end
-
 -- Functions
-local function StabilizeCharacter()
+local function LockCharacter()
     local character = player.Character
     if character then
         local humanoid = character:WaitForChild("Humanoid")
-        local hrp = character:WaitForChild("HumanoidRootPart")
-        
-        -- Keep character upright and stable
-        humanoid.AutoRotate = false
-        hrp.CanCollide = false
-        
-        -- Use PlatformStand to prevent falling but still allow attack animations
+        -- Remove anchoring of HumanoidRootPart
         humanoid.PlatformStand = true
+        humanoid:ChangeState(Enum.HumanoidStateType.PlatformStanding)
     end
 end
 
-local function RestoreCharacter()
+local function UnlockCharacter()
     local character = player.Character
     if character then
         local humanoid = character:WaitForChild("Humanoid")
-        local hrp = character:WaitForChild("HumanoidRootPart")
-        
-        -- Restore normal character behavior
-        humanoid.AutoRotate = true
-        hrp.CanCollide = true
+        -- Re-enable character controls
         humanoid.PlatformStand = false
     end
 end
@@ -191,7 +134,6 @@ local function TweenToPosition(targetCFrame)
     end
     
     -- Calculate a stable position relative to the boss
-    -- Using a fixed offset rather than random positioning
     local offset = CFrame.new(0, hoverHeight, -safeDistance)
     local safePosition = targetCFrame * offset
     
@@ -217,18 +159,15 @@ local function TweenToPosition(targetCFrame)
 end
 
 local function EquipWeapon(weaponName)
-    local character = player.Character
-    if not character then return end
-    
-    -- Check if weapon is already equipped
-    if character:FindFirstChild(weaponName) then
-        return
-    end
-    
     local weapon = player.Backpack:FindFirstChild(weaponName)
     if weapon then
-        character.Humanoid:EquipTool(weapon)
+        player.Character.Humanoid:EquipTool(weapon)
     end
+end
+
+local function FindBoss()
+    local boss = workspace.Enemies:FindFirstChild("Captain Elephant")
+    return boss
 end
 
 -- Improved boss following with better stability
@@ -240,8 +179,8 @@ local function FollowBoss()
             if now - lastPositionUpdate >= positionUpdateInterval then
                 lastPositionUpdate = now
                 
-                local boss = FindBossAnywhere()
-                if boss then
+                local boss = FindBoss()
+                if boss and boss:FindFirstChild("HumanoidRootPart") then
                     local bossHRP = boss:FindFirstChild("HumanoidRootPart")
                     if bossHRP then
                         -- Only tween if we're not already close enough
@@ -252,11 +191,6 @@ local function FollowBoss()
                                 TweenToPosition(bossHRP.CFrame)
                             end
                         end
-                    end
-                    
-                    -- If we're using a temp marker and found the real boss, clean up
-                    if boss.Name == "TempBossMarker" and workspace.Enemies:FindFirstChild("Captain Elephant") then
-                        boss:Destroy()
                     end
                 end
             end
@@ -269,9 +203,9 @@ end
 local function FarmBoss()
     task.spawn(function()
         while isFarming do
-            local boss = FindBossAnywhere()
+            local boss = FindBoss()
             
-            if boss then
+            if boss and boss:FindFirstChild("HumanoidRootPart") then
                 -- Stabilize character to prevent jittering
                 StabilizeCharacter()
                 
@@ -327,20 +261,7 @@ FarmTab:AddToggle({
             FarmBoss()
         else
             _G["L*12_34"] = false -- Disable fast attack when farming stops
-            RestoreCharacter()
-            
-            -- Cancel any active tween
-            if currentTween then
-                currentTween:Cancel()
-                currentTween = nil
-            end
-            
-            -- Clean up any temporary markers
-            for _, v in pairs(workspace:GetChildren()) do
-                if v.Name == "TempBossMarker" then
-                    v:Destroy()
-                end
-            end
+            UnlockCharacter()
         end
     end
 })
