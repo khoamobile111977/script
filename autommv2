@@ -161,7 +161,7 @@ end
 local ChooseWeapon = "Melee"
 local SelectWeapon = nil
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait() do
         for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
             if tool.ToolTip == ChooseWeapon then
                 SelectWeapon = tool.Name
@@ -172,12 +172,48 @@ task.spawn(function()
 end)
 
 local CongCake = CFrame.new(-2009.2802734375, 4532.97216796875, -14937.3076171875)
+local AdminPos = CFrame.new(-5344.822265625, 423.98541259766, -2725.0930175781)
+
+spawn(function()
+    while wait(1) do
+        local doughKing = Workspace.Enemies:FindFirstChild("Dough King")
+        local ripIndra1 = Workspace.Enemies:FindFirstChild("rip_indra")
+        local ripIndra2 = Workspace.Enemies:FindFirstChild("rip_indra True Form")
+        
+        local hasDoughKing = false
+        local hasRipIndra = false
+
+        if doughKing and doughKing:FindFirstChild("Humanoid") and doughKing.Humanoid.Health > 0 then
+            hasDoughKing = true
+        end
+
+        local ripIndra = ripIndra1 or ripIndra2
+        if ripIndra and ripIndra:FindFirstChild("Humanoid") and ripIndra.Humanoid.Health > 0 then
+            hasRipIndra = true
+        end
+
+        if hasDoughKing and hasRipIndra then
+            _G["DitBossDoughKing"] = true
+            _G["DitBossIndra"] = false
+        elseif hasDoughKing then
+            _G["DitBossDoughKing"] = true
+            _G["DitBossIndra"] = false
+        elseif hasRipIndra then
+            _G["DitBossDoughKing"] = false
+            _G["DitBossIndra"] = true
+        else
+            _G["DitBossDoughKing"] = false
+            _G["DitBossIndra"] = false
+        end
+    end
+end)
 
 spawn(function()
     while wait() do
         if _G["DitBossDoughKing"] then
             pcall(function()
-                if Workspace.Enemies:FindFirstChild("Dough King") then
+                local dk = Workspace.Enemies:FindFirstChild("Dough King")
+                if dk then
                     for _, v in pairs(Workspace.Enemies:GetChildren()) do
                         if v.Name == "Dough King" and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
                             repeat
@@ -188,14 +224,14 @@ spawn(function()
                                 v.HumanoidRootPart.CanCollide = false
                                 v.Humanoid.WalkSpeed = 0
                                 v.Humanoid.JumpPower = 0
-                                v.HumanoidRootPart.Size = Vector3.new(1, 1, 1) 
-                                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0,30,0))
+                                v.HumanoidRootPart.Size = Vector3.new(1, 1, 1)
+                                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
                                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                                 _G["L_12_34"] = true
                             until not _G["DitBossDoughKing"] or not v.Parent or v.Humanoid.Health <= 0
                         end
                     end
-                else 
+                else
                     Tween(CongCake)
                 end
             end)
@@ -203,31 +239,33 @@ spawn(function()
     end
 end)
 
-local AdminPos = CFrame.new(-5344.822265625, 423.98541259766, -2725.0930175781)
-
 spawn(function()
     while wait() do
         if _G["DitBossIndra"] then
             pcall(function()
-                if Workspace.Enemies:FindFirstChild("rip_indra True Form") or Workspace.Enemies:FindFirstChild("rip_indra") then
+                local ripIndra = Workspace.Enemies:FindFirstChild("rip_indra True Form") or Workspace.Enemies:FindFirstChild("rip_indra")
+                if ripIndra then
                     for _, v in pairs(Workspace.Enemies:GetChildren()) do
-                        if (v.Name == "rip_indra True Form" or v.Name == "rip_indra") and v.Humanoid.Health > 0 and v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+                        if (v.Name == "rip_indra True Form" or v.Name == "rip_indra") 
+                           and v:FindFirstChild("Humanoid") 
+                           and v:FindFirstChild("HumanoidRootPart") 
+                           and v.Humanoid.Health > 0 then
                             repeat
                                 task.wait()
                                 G2L["7"].Text = "Killing Rip Indra"
                                 AutoHaki()
                                 EquipTool(SelectWeapon)
                                 v.HumanoidRootPart.CanCollide = false
-                                v.Humanoid.JumpPower = 0
                                 v.Humanoid.WalkSpeed = 0
-                                v.HumanoidRootPart.Size = Vector3.new(1, 1, 1)                             
-                                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0,30,0))
+                                v.Humanoid.JumpPower = 0
+                                v.HumanoidRootPart.Size = Vector3.new(1, 1, 1)
+                                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
                                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                                 _G["L_12_34"] = true
                             until not _G["DitBossIndra"] or not v.Parent or v.Humanoid.Health <= 0
                         end
                     end
-                else 
+                else
                     Tween(AdminPos)
                 end
             end)
