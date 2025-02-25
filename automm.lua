@@ -23,7 +23,7 @@ spawn(function()
             setTeam("Marines")
             _G.Select_Marines = false  
             break
-        end -- Fixed missing 'end' instead of 'endI'
+        endI
     end
 end)
 local Players = game:GetService("Players")
@@ -37,18 +37,10 @@ local Window = OrionLib:MakeWindow({Name = "Boss Farm GUI", HidePremium = false,
 -- Variables
 local player = Players.LocalPlayer
 local isFarming = false
-local hoverHeight = 25 -- Height above boss
-local safeDistance = 20 -- Safe distance to avoid boss attacks
-local tweenSpeed = 300 -- Fixed tween speed
-local currentTween = nil
-local isCharacterLocked = false
+local hoverHeight = 25 -- Tăng chiều cao trên đầu boss
+local safeDistance = 20 -- Khoảng cách an toàn để tránh đòn đánh của boss
+local tweenSpeed = 300 -- Tốc độ tween cố định
 
--- Target Boss Configuration
-local targetBoss = "Captain Elephant"
-local knownBossPositions = {
-    ["Captain Elephant"] = Vector3.new(62, 75, -1389) -- Add the approximate position of the boss
-    -- Add more boss positions as needed
-}
 
 -- Fast Attack Implementation
 _G["L*12_34"] = false
@@ -109,14 +101,12 @@ end
 
 -- Functions
 local function LockCharacter()
-    if isCharacterLocked then return end
-    
     local character = player.Character
     if character then
         local humanoid = character:WaitForChild("Humanoid")
+        -- Remove anchoring of HumanoidRootPart
         humanoid.PlatformStand = true
         humanoid:ChangeState(Enum.HumanoidStateType.PlatformStanding)
-        isCharacterLocked = true
     end
 end
 
@@ -124,168 +114,79 @@ local function UnlockCharacter()
     local character = player.Character
     if character then
         local humanoid = character:WaitForChild("Humanoid")
+        -- Re-enable character controls
         humanoid.PlatformStand = false
-        isCharacterLocked = false
     end
-end
-
--- Cancel current tween if exists
-local function CancelCurrentTween()
-    if currentTween then
-        currentTween:Cancel()
-        currentTween = nil
-    end
-end
-
-local function StabilizeCFrame(targetCFrame)
-    -- Return a clean CFrame with only position and Y-axis rotation (to prevent shaking)
-    local position = targetCFrame.Position
-    local _, y, _ = CFrame.new(position, position + targetCFrame.LookVector).Rotation:ToEulerAnglesYXZ()
-    return CFrame.new(position) * CFrame.Angles(0, y, 0)
 end
 
 local function TweenToPosition(targetCFrame)
-    CancelCurrentTween()
+    local humanoidRootPart = player.Character:WaitForChild("HumanoidRootPart")
+    -- Tạo vị trí mới với khoảng cách an toàn và độ cao
+    local safePosition = targetCFrame * CFrame.new(0, hoverHeight, -safeDistance)
     
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    -- Stabilize the target CFrame to prevent shaking
-    local stableCFrame = StabilizeCFrame(targetCFrame)
-    
-    -- Calculate position with safe distance and height
-    local safePosition = stableCFrame * CFrame.new(0, hoverHeight, -safeDistance)
-    
-    -- Calculate distance for fixed speed
+    -- Tính toán khoảng cách để áp dụng tốc độ cố định
     local distance = (safePosition.Position - humanoidRootPart.Position).Magnitude
     local tweenTime = distance / tweenSpeed
     
-    -- Create and play tween
+    -- Ensure HumanoidRootPart is not anchored during tween
     humanoidRootPart.Anchored = false
     
-    currentTween = TweenService:Create(
-        humanoidRootPart, 
+    local tween = TweenService:Create(humanoidRootPart, 
         TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
         {CFrame = safePosition}
     )
-    
-    currentTween:Play()
-    return currentTween
+    tween:Play()
+    return tween
 end
 
 local function EquipWeapon(weaponName)
-    if not player.Character then return end
-    
     local weapon = player.Backpack:FindFirstChild(weaponName)
     if weapon then
         player.Character.Humanoid:EquipTool(weapon)
-        return true
     end
-    return false
 end
 
--- Improved boss finding function
 local function FindBoss()
-    -- First check if boss exists in workspace
-    local boss = workspace.Enemies:FindFirstChild(targetBoss)
-    if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-        return boss
-    end
-    
-    -- If boss is not found, return nil but we'll use knownBossPositions instead
-    return nil
+    local boss = workspace.Enemies:FindFirstChild("Captain Elephant")
+    return boss
 end
 
-local function GetBossCFrame()
-    local boss = FindBoss()
-    
-    if boss and boss:FindFirstChild("HumanoidRootPart") then
-        -- Boss is loaded, return its actual CFrame
-        return boss.HumanoidRootPart.CFrame
-    elseif knownBossPositions[targetBoss] then
-        -- Boss not loaded, but we know where it should be
-        local position = knownBossPositions[targetBoss]
-        return CFrame.new(position)
-    end
-    
-    -- No boss found and no known position
-    return nil
-end
-
--- Fixed boss following function to prevent shaking
-local function StableBossFollowing()
+-- Continuous Boss Following Function
+local function ContinuouslyFollowBoss()
     task.spawn(function()
         while isFarming do
-            local bossCFrame = GetBossCFrame()
-            
-            if bossCFrame then
-                -- Only create a new tween if we don't have an active one or if it's completed
-                if not currentTween or currentTween.PlaybackState == Enum.PlaybackState.Completed then
-                    TweenToPosition(bossCFrame)
-                end
-            else
-                -- If we can't find the boss or its position, wait longer before retrying
-                task.wait(1)
+            local boss = FindBoss()
+            if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                TweenToPosition(boss.HumanoidRootPart.CFrame)
             end
-            
-            -- Short wait to prevent excessive updates that cause shaking
-            task.wait(0.5)
+            task.wait(0.1) -- Kiểm tra và cập nhật vị trí mỗi 0.1 giây
         end
     end)
 end
 
--- Teleport to boss spawn area if boss is not loaded
-local function TeleportToBossSpawn()
-    local bossCFrame = GetBossCFrame()
-    if bossCFrame then
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            TweenToPosition(bossCFrame)
-            return true
-        end
-    end
-    return false
-end
-
 -- Farm Function
 local function FarmBoss()
-    if isFarming then
-        -- Lock character movement
-        LockCharacter()
-        
-        -- Equip weapon
-        EquipWeapon("Sharkman Karate")
-        
-        -- Teleport to boss spawn if not in range
-        TeleportToBossSpawn()
-        
-        -- Start stable following
-        StableBossFollowing()
-        
-        -- Start farming loop
-        task.spawn(function()
-            while isFarming do
-                local boss = FindBoss()
-                
-                -- If boss is found and loaded, attack
-                if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
-                    -- Continue attacking
-                else
-                    -- Boss not found or not loaded, wait briefly
-                    task.wait(1)
-                end
-                
+    while isFarming do
+        local boss = FindBoss()
+        if boss and boss:FindFirstChild("HumanoidRootPart") and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+            -- Lock character movement
+            LockCharacter()
+            
+            -- Equip weapon
+            EquipWeapon("Sharkman Karate")
+            
+            -- Start following boss
+            ContinuouslyFollowBoss()
+            
+            -- Attack while boss is alive
+            while boss.Humanoid.Health > 0 and isFarming do
                 task.wait(0.1)
             end
-        end)
-    else
-        -- Clean up when farming stops
-        CancelCurrentTween()
-        UnlockCharacter()
+        end
+        task.wait(1)
     end
+    -- Unlock character when farming stops
+    UnlockCharacter()
 end
 
 -- Main Tab
@@ -306,7 +207,6 @@ FarmTab:AddToggle({
             FarmBoss()
         else
             _G["L*12_34"] = false -- Disable fast attack when farming stops
-            CancelCurrentTween()
             UnlockCharacter()
         end
     end
@@ -318,30 +218,5 @@ FarmTab:AddToggle({
     Default = false,
     Callback = function(Value)
         _G.BringMobs = Value
-    end
-})
-
--- Add boss selection dropdown
-local BossesTab = Window:MakeTab({
-    Name = "Bosses",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Add boss position finder
-BossesTab:AddButton({
-    Name = "Save Current Boss Position",
-    Callback = function()
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local position = character.HumanoidRootPart.Position
-            knownBossPositions[targetBoss] = position
-            OrionLib:MakeNotification({
-                Name = "Position Saved",
-                Content = "Saved position for " .. targetBoss,
-                Image = "rbxassetid://4483345998",
-                Time = 5
-            })
-        end
     end
 })
