@@ -262,7 +262,6 @@ local function findBoss()
 end
 
 -- Main farm function
--- Main farm function
 local function farmBoss()
     local positionUpdateConnection = nil
     
@@ -270,8 +269,9 @@ local function farmBoss()
         local boss, location = findBoss()
         
         if boss then
-            -- If boss is in ReplicatedStorage, teleport to its spawn location
+            -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
             if location == "replicated" then
+                -- Teleport to spawn location
                 local tween = tweenTo(bossSpawnPosition, 200)
                 wait(1)
                 
@@ -289,7 +289,7 @@ local function farmBoss()
                 end
             end
             
-            -- Continue with farming if boss is in workspace
+            -- Continue with existing functionality if boss is in workspace
             if location == "workspace" and boss:FindFirstChild("HumanoidRootPart") then
                 -- Equip weapon if not equipped
                 if not character:FindFirstChildOfClass("Tool") then
@@ -314,36 +314,25 @@ local function farmBoss()
                     positionUpdateConnection = nil
                 end
                 
-                -- Continuously update position to hover above the boss
+                -- Create a new position update connection to continuously hover above boss
                 positionUpdateConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                    if not farmEnabled or not boss or not boss:FindFirstChild("HumanoidRootPart") or not character or not character:FindFirstChild("HumanoidRootPart") then
-                        if positionUpdateConnection then
-                            positionUpdateConnection:Disconnect()
-                            positionUpdateConnection = nil
-                        end
+                    if not farmEnabled then
+                        positionUpdateConnection:Disconnect()
                         return
                     end
                     
-                    -- Calculate position above boss's head based on hoverHeight
-                    local bossHeadPosition = boss.HumanoidRootPart.Position
-                    local abovePosition = bossHeadPosition + Vector3.new(0, hoverHeight, 0)
-                    
-                    -- Use tweening to smoothly move to the position above boss
-                    local currentPos = character.HumanoidRootPart.Position
-                    if (currentPos - abovePosition).Magnitude > 1 then -- Only tween if not already close enough
-                        local tween = tweenTo(abovePosition, 500) -- Faster speed for responsiveness
-                        tween.Completed:Wait() -- Wait for tween to complete to avoid jitter
-                    else
-                        -- Directly set position if already close to avoid unnecessary tweening
+                    if boss and boss:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") then
+                        -- Position hoverHeight studs above the boss's head
+                        local abovePosition = boss.HumanoidRootPart.Position + Vector3.new(0, hoverHeight, 0)
+                        
+                        -- Set the character's position directly (for continuous positioning)
                         character.HumanoidRootPart.CFrame = CFrame.new(abovePosition) * CFrame.Angles(0, math.rad(character.HumanoidRootPart.Orientation.Y), 0)
+                        character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0) -- Stop any momentum
+                        character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0) -- Stop any rotational momentum
                     end
-                    
-                    -- Reset velocity to prevent drifting
-                    character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                    character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0)
                 end)
                 
-                -- Perform fast attack if enabled
+                -- Do fast attack if enabled
                 if fastAttackEnabled then
                     AttackNoCoolDown()
                 end
@@ -354,14 +343,16 @@ local function farmBoss()
                 end
             end
         else
-            -- If boss not found, clean up and teleport to spawn area
+            -- If position update connection exists, disconnect it
             if positionUpdateConnection then
                 positionUpdateConnection:Disconnect()
                 positionUpdateConnection = nil
             end
             
+            -- Restore character movement when not farming
             restoreCharacterMovement()
             
+            -- If boss not found anywhere, teleport to known spawn area and wait
             OrionLib:MakeNotification({
                 Name = "Boss Not Found",
                 Content = "Teleporting to spawn area to wait for Captain Elephant",
@@ -372,16 +363,8 @@ local function farmBoss()
             wait(5)
         end
         
-        wait(0.1) -- Small delay to prevent excessive CPU usage
+        wait(0.1)
     end
-    
-    -- Clean up when farming stops
-    if positionUpdateConnection then
-        positionUpdateConnection:Disconnect()
-        positionUpdateConnection = nil
-    end
-    restoreCharacterMovement()
-end
     
     -- Clean up when farming disabled
     if positionUpdateConnection then
