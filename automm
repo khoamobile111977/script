@@ -16,6 +16,12 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local farmEnabled = false
 local fastAttackEnabled = false
 local bringMobEnabled = false
+local hoverHeight = 30 -- Default hover height
+local lastKnownBossPosition = nil
+local noclipEnabled = false
+local bossWaypoints = {
+    ["Captain Elephant"] = Vector3.new(3851.01, 4.00195, -1939.11) -- Default position for Captain Elephant
+}
 
 -- Create main tab
 local FarmTab = Window:MakeTab({
@@ -28,6 +34,30 @@ local FarmTab = Window:MakeTab({
 local FarmSection = FarmTab:AddSection({
     Name = "Farm Settings"
 })
+
+-- Enable NoClip function
+local function setNoclip(enabled)
+    noclipEnabled = enabled
+    local connections = {}
+    
+    if enabled then
+        connections.stepped = game:GetService("RunService").Stepped:Connect(function()
+            if character and character:FindFirstChild("Humanoid") then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        for _, connection in pairs(connections) do
+            if connection then connection:Disconnect() end
+        end
+    end
+    
+    return connections
+end
 
 -- Function to equip Sharkman Karate
 local function equipWeapon()
@@ -45,7 +75,7 @@ local function equipWeapon()
     end
 end
 
--- Tween function
+-- Improved Tween function
 local function tweenTo(destination, speed)
     if not speed then speed = 350 end
     
@@ -208,24 +238,85 @@ local function BringMob()
     end
 end
 
--- Function to find the boss
+-- Improved function to find the boss
 local function findBoss()
+    -- First check if the boss is already in workspace
     for _, v in pairs(workspace.Enemies:GetChildren()) do
         if v.Name == "Captain Elephant" and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            lastKnownBossPosition = v.HumanoidRootPart.Position
             return v
         end
     end
+    
+    -- If not found in workspace, return nil but we'll use lastKnownBossPosition or default position
     return nil
+end
+
+-- Function to get the boss position (even if not loaded)
+local function getBossPosition()
+    local boss = findBoss()
+    
+    if boss and boss:FindFirstChild("HumanoidRootPart") then
+        -- If boss is found, update the last known position and return it
+        lastKnownBossPosition = boss.HumanoidRootPart.Position
+        return lastKnownBossPosition
+    elseif lastKnownBossPosition then
+        -- If boss not found but we have a last known position, use that
+        return lastKnownBossPosition
+    else
+        -- If all else fails, use the default waypoint
+        lastKnownBossPosition = bossWaypoints["Captain Elephant"]
+        return lastKnownBossPosition
+    end
+end
+
+-- Function to hover above the boss
+local function hoverAboveBoss()
+    local bossPos = getBossPosition()
+    
+    if bossPos then
+        -- Create a position above the boss
+        local hoverPos = Vector3.new(bossPos.X, bossPos.Y + hoverHeight, bossPos.Z)
+        
+        -- Set character position
+        if hrp then
+            hrp.CFrame = CFrame.new(hoverPos)
+        end
+        
+        return true
+    end
+    
+    return false
+end
+
+-- Function to continuously hover
+local function maintainHover()
+    while farmEnabled do
+        if not hoverAboveBoss() then
+            -- If we failed to hover, try to move to the boss position
+            local bossPos = getBossPosition()
+            if bossPos then
+                local hoverPos = Vector3.new(bossPos.X, bossPos.Y + hoverHeight, bossPos.Z)
+                tweenTo(hoverPos, 200)
+            end
+        end
+        
+        wait(0.1)
+    end
 end
 
 -- Main farm function
 local function farmBoss()
+    -- Enable noclip when farming
+    local noclipConnections = setNoclip(true)
+    
+    -- Spawn a separate thread for maintaining hover
+    local hoverThread = task.spawn(maintainHover)
+    
     while farmEnabled do
-        local boss = findBoss()
+        local bossPos = getBossPosition()
         
-        if boss and boss:FindFirstChild("HumanoidRootPart") then
-            local bossPosition = boss.HumanoidRootPart.Position
-            
+        if bossPos then
             -- Equip weapon if not equipped
             if not character:FindFirstChildOfClass("Tool") then
                 if not equipWeapon() then
@@ -240,20 +331,8 @@ local function farmBoss()
                 end
             end
             
-            -- Move to boss position
-            local distance = (bossPosition - hrp.Position).Magnitude
-            if distance > 10 then
-                local tween = tweenTo(bossPosition, 200)
-                local startTime = tick()
-                
-                -- Wait for tween to complete or timeout
-                while tween and tick() - startTime < 5 and farmEnabled do
-                    if (hrp.Position - bossPosition).Magnitude < 10 then
-                        break
-                    end
-                    wait()
-                end
-            end
+            -- The hover position is maintained in a separate thread
+            -- Just focus on attacking and bringing mobs
             
             -- Do fast attack if enabled
             if fastAttackEnabled then
@@ -265,11 +344,19 @@ local function farmBoss()
                 BringMob()
             end
         else
-            -- If boss not found, wait a bit before looking again
+            -- If no boss position available, wait before retrying
             wait(1)
         end
         
         wait(0.1)
+    end
+    
+    -- Disable noclip when farming is stopped
+    setNoclip(false)
+    
+    -- Clean up connections
+    for _, connection in pairs(noclipConnections) do
+        if connection then connection:Disconnect() end
     end
 end
 
@@ -287,6 +374,13 @@ FarmTab:AddToggle({
                 Image = "rbxassetid://4483345998",
                 Time = 5
             })
+            
+            -- First try to tween to the boss location
+            local bossPos = getBossPosition()
+            if bossPos then
+                local hoverPos = Vector3.new(bossPos.X, bossPos.Y + hoverHeight, bossPos.Z)
+                tweenTo(hoverPos, 200)
+            end
             
             task.spawn(farmBoss)
         else
@@ -350,13 +444,41 @@ FarmTab:AddToggle({
     end
 })
 
+-- Toggle for noclip
+FarmTab:AddToggle({
+    Name = "NoClip",
+    Default = false,
+    Callback = function(Value)
+        setNoclip(Value)
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "NoClip",
+                Content = "NoClip enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "NoClip",
+                Content = "NoClip disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
 -- Add manual teleport button
 FarmTab:AddButton({
     Name = "Teleport to Captain Elephant",
     Callback = function()
-        local boss = findBoss()
-        if boss and boss:FindFirstChild("HumanoidRootPart") then
-            tweenTo(boss.HumanoidRootPart.Position, 200)
+        local bossPos = getBossPosition()
+        
+        if bossPos then
+            local hoverPos = Vector3.new(bossPos.X, bossPos.Y + hoverHeight, bossPos.Z)
+            tweenTo(hoverPos, 200)
+            
             OrionLib:MakeNotification({
                 Name = "Teleporting",
                 Content = "Teleporting to Captain Elephant",
@@ -365,8 +487,8 @@ FarmTab:AddButton({
             })
         else
             OrionLib:MakeNotification({
-                Name = "Boss Not Found",
-                Content = "Captain Elephant not found in workspace",
+                Name = "Boss Location Not Found",
+                Content = "Could not determine boss location",
                 Image = "rbxassetid://4483345998",
                 Time = 5
             })
@@ -381,6 +503,20 @@ local SettingsTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+-- Add hover height slider
+SettingsTab:AddSlider({
+    Name = "Hover Height",
+    Min = 10,
+    Max = 100,
+    Default = 30,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 5,
+    ValueName = "height",
+    Callback = function(Value)
+        hoverHeight = Value
+    end    
+})
+
 -- Add teleport distance slider
 SettingsTab:AddSlider({
     Name = "Attack Range",
@@ -393,6 +529,22 @@ SettingsTab:AddSlider({
     Callback = function(Value)
         attackRange = Value
     end    
+})
+
+-- Add custom boss position button
+SettingsTab:AddButton({
+    Name = "Set Current Position as Boss Location",
+    Callback = function()
+        lastKnownBossPosition = hrp.Position
+        bossWaypoints["Captain Elephant"] = hrp.Position
+        
+        OrionLib:MakeNotification({
+            Name = "Position Set",
+            Content = "Current position saved as Captain Elephant location",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end
 })
 
 -- Initialize
