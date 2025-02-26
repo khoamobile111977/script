@@ -1,135 +1,542 @@
+-- Load Orion UI Library
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "Blox Fruits Boss Farm", HidePremium = false, IntroText = "Boss Farm Script"})
 
+-- Create main window
+local Window = OrionLib:MakeWindow({
+    Name = "Boss Farm - Captain Elephant",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "ElephantFarm"
+})
+
+-- Variables
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local farmEnabled = false
+local fastAttackEnabled = false
+local bringMobEnabled = false
+local attackRange = 60
+local hoverHeight = 30  -- Default hover height
+local bossSpawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
+
+-- Create main tab
 local FarmTab = Window:MakeTab({
-    Name = "Farming",
+    Name = "Farm",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
+-- Farm section
 local FarmSection = FarmTab:AddSection({
-    Name = "Boss Farming"
+    Name = "Farm Settings"
 })
 
--- Variables
-local farmEnabled = false
-local fastAttackEnabled = false
-local bringMobEnabled = false
-local hoverHeight = 30
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
+-- Function to equip Sharkman Karate
+local function equipWeapon()
+    local backpack = player.Backpack
+    local weapon = backpack:FindFirstChild("Sharkman Karate")
+    
+    if weapon then
+        character.Humanoid:EquipTool(weapon)
+        return true
+    else
+        if character:FindFirstChild("Sharkman Karate") then
+            return true
+        end
+        return false
+    end
+end
 
--- Function to find boss
-local function findBoss()
-    for _, v in pairs(workspace.Enemies:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") then
-            if v.Name:match("Captain Elephant") then
-                return v
+-- Tween function
+local function tweenTo(destination, speed)
+    if not speed then speed = 350 end
+    
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    local distance = (destination - hrp.Position).Magnitude
+    local tweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(distance/speed, Enum.EasingStyle.Linear)
+    
+    local tween = tweenService:Create(hrp, info, {CFrame = CFrame.new(destination)})
+    tween:Play()
+    return tween
+end
+
+-- Function to make character stationary
+local function makeCharacterStationary()
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.PlatformStand = true
+        -- Disable character controls temporarily
+        pcall(function()
+            player.DevComputerMovementMode = Enum.DevComputerMovementMode.Scriptable
+        end)
+    end
+end
+
+-- Function to restore character movement
+local function restoreCharacterMovement()
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.PlatformStand = false
+        -- Re-enable character controls
+        pcall(function()
+            player.DevComputerMovementMode = Enum.DevComputerMovementMode.UserChoice
+        end)
+    end
+end
+
+-- Fast Attack function
+function AttackNoCoolDown()
+    local character = player.Character
+    if not character then return end
+    
+    local equippedWeapon = nil
+    for _, item in ipairs(character:GetChildren()) do
+        if item:IsA("Tool") then
+            equippedWeapon = item
+            break
+        end
+    end
+    
+    if not equippedWeapon then return end
+    
+    local function IsEntityAlive(entity)
+        return entity and entity:FindFirstChild("Humanoid") and entity.Humanoid.Health > 0
+    end
+    
+    local function GetEnemiesInRange(range)
+        local enemies = game:GetService("Workspace").Enemies:GetChildren()
+        local targets = {}
+        local playerPos = character:GetPivot().Position
+        
+        for _, enemy in ipairs(enemies) do
+            local primaryPart = enemy:FindFirstChild("HumanoidRootPart")
+            if primaryPart and IsEntityAlive(enemy) and (primaryPart.Position - playerPos).Magnitude <= range then
+                table.insert(targets, enemy)
             end
         end
+        
+        return targets
+    end
+    
+    if equippedWeapon:FindFirstChild("LeftClickRemote") then
+        local attackCount = 1  
+        local enemiesInRange = GetEnemiesInRange(attackRange)
+        
+        for _, enemy in ipairs(enemiesInRange) do
+            local direction = (enemy.HumanoidRootPart.Position - character:GetPivot().Position).Unit
+            pcall(function()
+                equippedWeapon.LeftClickRemote:FireServer(direction, attackCount)
+            end)
+            attackCount = attackCount + 1
+            if attackCount > 1000000000 then attackCount = 1 end
+        end
+    else
+        local targets = {}
+        local enemies = game:GetService("Workspace").Enemies:GetChildren()
+        local playerPos = character:GetPivot().Position
+        local mainTarget = nil
+        
+        for _, enemy in ipairs(enemies) do
+            if not enemy:GetAttribute("IsBoat") and IsEntityAlive(enemy) then
+                local head = enemy:FindFirstChild("Head")
+                if head and (playerPos - head.Position).Magnitude <= attackRange then
+                    table.insert(targets, { enemy, head })
+                    mainTarget = head
+                end
+            end
+        end
+        
+        if not mainTarget then return end
+        
+        pcall(function()
+            local storage = game:GetService("ReplicatedStorage")
+            local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
+            local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
+            
+            if #targets > 0 then
+                attackEvent:FireServer(0.000000001)
+                hitEvent:FireServer(mainTarget, targets)
+            else
+                task.wait(0.000000001)
+            end
+        end)
+    end
+end
+
+-- Bring Mob function
+local function GetMobPosition(EnemiesName)
+    local pos
+    local count = 0
+    
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == EnemiesName then
+            if not pos then
+                pos = v.HumanoidRootPart.Position
+            else
+                pos = pos + v.HumanoidRootPart.Position
+            end
+            count = count + 1
+        end
+    end
+    
+    if count > 0 then
+        pos = pos / count
+        return pos
     end
     return nil
 end
 
--- Function to disable player movement
-local function disableCharacterMovement()
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = 0
-        humanoid.JumpPower = 0
-    end
+local function TweenObject(Object, Pos, Speed)
+    if Speed == nil then Speed = 350 end
+    local Distance = (Pos.Position - Object.Position).Magnitude
+    local tweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(Distance/Speed, Enum.EasingStyle.Linear)
+    local tween = tweenService:Create(Object, info, {CFrame = Pos})
+    tween:Play()
+    return tween
 end
 
--- Function to restore player movement
-local function restoreCharacterMovement()
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
-    end
-end
-
--- Function for Auto Farm
-local function farmBoss()
-    while farmEnabled do
-        local boss = findBoss()
-        if boss then
-            local bossRoot = boss:FindFirstChild("HumanoidRootPart")
-            if bossRoot then
-                disableCharacterMovement()
-
-                -- Keep character above the boss
-                spawn(function()
-                    while farmEnabled and boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 do
-                        rootPart.CFrame = bossRoot.CFrame * CFrame.new(0, hoverHeight, 0)
-                        wait(0.1)
-                    end
-                end)
-
-                -- Attack loop
-                while farmEnabled and boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 do
-                    if fastAttackEnabled then
-                        -- Add your attack function here
-                    end
-                    if bringMobEnabled then
-                        -- Add your bring mob function here
-                    end
-                    wait(0.1)
+local function BringMob()
+    local ememe = game.Workspace.Enemies:GetChildren()
+    if #ememe > 0 then
+        local totalpos = {}
+        for _, v in pairs(ememe) do
+            if not totalpos[v.Name] then
+                local pos = GetMobPosition(v.Name)
+                if pos then
+                    totalpos[v.Name] = pos
                 end
-
-                -- Restore movement after boss is defeated
-                restoreCharacterMovement()
             end
         end
-        wait(1) -- Prevent excessive loop execution
+        
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                if (v.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude <= 350 then
+                    for k, f in pairs(totalpos) do
+                        if k and v.Name == k and f then
+                            local targetCFrame = CFrame.new(f.X, f.Y, f.Z)
+                            local distance = (v.HumanoidRootPart.Position - targetCFrame.Position).Magnitude
+                            
+                            if distance > 3 and distance <= 280 then
+                                TweenObject(v.HumanoidRootPart, targetCFrame, 300)
+                                v.HumanoidRootPart.CanCollide = false
+                                v.Humanoid.WalkSpeed = 0
+                                v.Humanoid.JumpPower = 0
+                                v.Humanoid:ChangeState(14)
+                                sethiddenproperty(player, "SimulationRadius", math.huge)
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 
--- UI Elements
-FarmSection:AddToggle({
-    Name = "Enable Boss Farm",
+-- Enhanced function to find the boss
+local function findBoss()
+    -- First check if boss exists in the current workspace
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == "Captain Elephant" and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v, "workspace"
+        end
+    end
+    
+    -- If not in workspace, check in ReplicatedStorage
+    local repStorage = game:GetService("ReplicatedStorage")
+    local possibleLocations = {
+        repStorage,
+        repStorage:FindFirstChild("Enemies") or Instance.new("Folder"),
+        repStorage:FindFirstChild("NPCs") or Instance.new("Folder")
+    }
+    
+    for _, location in pairs(possibleLocations) do
+        for _, v in pairs(location:GetChildren()) do
+            if v.Name == "Captain Elephant" then
+                return v, "replicated"
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- Main farm function
+local function farmBoss()
+    local positionUpdateConnection = nil
+    
+    while farmEnabled do
+        local boss, location = findBoss()
+        
+        if boss then
+            -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
+            if location == "replicated" then
+                -- Teleport to spawn location
+                local tween = tweenTo(bossSpawnPosition, 200)
+                wait(1)
+                
+                -- After teleporting, check again if boss appears in workspace
+                local checkAttempts = 0
+                while checkAttempts < 5 do
+                    local newBoss, newLocation = findBoss()
+                    if newBoss and newLocation == "workspace" then
+                        boss = newBoss
+                        location = newLocation
+                        break
+                    end
+                    checkAttempts = checkAttempts + 1
+                    wait(1)
+                end
+            end
+            
+            -- Continue with existing functionality if boss is in workspace
+            if location == "workspace" and boss:FindFirstChild("HumanoidRootPart") then
+                -- Equip weapon if not equipped
+                if not character:FindFirstChildOfClass("Tool") then
+                    if not equipWeapon() then
+                        OrionLib:MakeNotification({
+                            Name = "Weapon Not Found",
+                            Content = "Sharkman Karate not found in backpack",
+                            Image = "rbxassetid://4483345998",
+                            Time = 5
+                        })
+                        wait(2)
+                        continue
+                    end
+                end
+                
+                -- Make character stationary
+                makeCharacterStationary()
+                
+                -- Disconnect previous position update connection if exists
+                if positionUpdateConnection then
+                    positionUpdateConnection:Disconnect()
+                    positionUpdateConnection = nil
+                end
+                
+                -- Create a new position update connection to continuously hover above boss
+                positionUpdateConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    if not farmEnabled then
+                        positionUpdateConnection:Disconnect()
+                        return
+                    end
+                    
+                    if boss and boss:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") then
+                        -- Position hoverHeight studs above the boss's head
+                        local abovePosition = boss.HumanoidRootPart.Position + Vector3.new(0, hoverHeight, 0)
+                        
+                        -- Set the character's position directly (for continuous positioning)
+                        character.HumanoidRootPart.CFrame = CFrame.new(abovePosition) * CFrame.Angles(0, math.rad(character.HumanoidRootPart.Orientation.Y), 0)
+                        character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0) -- Stop any momentum
+                        character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0) -- Stop any rotational momentum
+                    end
+                end)
+                
+                -- Do fast attack if enabled
+                if fastAttackEnabled then
+                    AttackNoCoolDown()
+                end
+                
+                -- Bring mobs if enabled
+                if bringMobEnabled then
+                    BringMob()
+                end
+            end
+        else
+            -- If position update connection exists, disconnect it
+            if positionUpdateConnection then
+                positionUpdateConnection:Disconnect()
+                positionUpdateConnection = nil
+            end
+            
+            -- Restore character movement when not farming
+            restoreCharacterMovement()
+            
+            -- If boss not found anywhere, teleport to known spawn area and wait
+            OrionLib:MakeNotification({
+                Name = "Boss Not Found",
+                Content = "Teleporting to spawn area to wait for Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            tweenTo(bossSpawnPosition, 200)
+            wait(5)
+        end
+        
+        wait(0.1)
+    end
+    
+    -- Clean up when farming disabled
+    if positionUpdateConnection then
+        positionUpdateConnection:Disconnect()
+        positionUpdateConnection = nil
+    end
+    
+    -- Restore character movement when farming stops
+    restoreCharacterMovement()
+end
+
+-- Toggle for farm
+FarmTab:AddToggle({
+    Name = "Farm Captain Elephant",
     Default = false,
-    Callback = function(value)
-        farmEnabled = value
-        if farmEnabled then
-            farmBoss()
+    Callback = function(Value)
+        farmEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Farm Enabled",
+                Content = "Starting to farm Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            
+            task.spawn(farmBoss)
+        else
+            OrionLib:MakeNotification({
+                Name = "Farm Disabled",
+                Content = "Stopped farming Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            
+            -- Ensure character movement is restored when farming is disabled
+            restoreCharacterMovement()
         end
     end
 })
 
-FarmSection:AddToggle({
-    Name = "Enable Fast Attack",
-    Default = false,
-    Callback = function(value)
-        fastAttackEnabled = value
+-- Toggle for fast attack
+FarmTab:AddToggle({
+    Name = "Fast Attack",
+    Default = true,
+    Callback = function(Value)
+        fastAttackEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Fast Attack",
+                Content = "Fast Attack enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Fast Attack",
+                Content = "Fast Attack disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
     end
 })
 
-FarmSection:AddToggle({
-    Name = "Enable Bring Mob",
-    Default = false,
-    Callback = function(value)
-        bringMobEnabled = value
+-- Toggle for bring mob
+FarmTab:AddToggle({
+    Name = "Bring Mob",
+    Default = true,
+    Callback = function(Value)
+        bringMobEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Bring Mob",
+                Content = "Bring Mob enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Bring Mob",
+                Content = "Bring Mob disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
     end
 })
 
-FarmSection:AddSlider({
-    Name = "Hover Height",
+-- Add manual teleport button
+FarmTab:AddButton({
+    Name = "Teleport to Captain Elephant",
+    Callback = function()
+        local boss, location = findBoss()
+        
+        if boss and location == "workspace" and boss:FindFirstChild("HumanoidRootPart") then
+            tweenTo(boss.HumanoidRootPart.Position, 200)
+            OrionLib:MakeNotification({
+                Name = "Teleporting",
+                Content = "Teleporting to Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        elseif location == "replicated" then
+            tweenTo(bossSpawnPosition, 200)
+            OrionLib:MakeNotification({
+                Name = "Teleporting",
+                Content = "Teleporting to Captain Elephant spawn area",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Boss Not Found",
+                Content = "Captain Elephant not found in workspace or ReplicatedStorage",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+        end
+    end
+})
+
+-- Extra features tab
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Add attack range slider
+SettingsTab:AddSlider({
+    Name = "Attack Range",
     Min = 10,
     Max = 100,
-    Default = 30,
-    Callback = function(value)
-        hoverHeight = value
-    end
+    Default = 60,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 5,
+    ValueName = "range",
+    Callback = function(Value)
+        attackRange = Value
+    end    
 })
 
--- Notification when script is fully loaded
+-- Add hover height slider
+SettingsTab:AddSlider({
+    Name = "Hover Height",
+    Min = 5,
+    Max = 50,
+    Default = 30,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "studs",
+    Callback = function(Value)
+        hoverHeight = Value
+    end    
+})
+
+-- Initialize
+OrionLib:Init()
+
+-- Clean up
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    hrp = character:WaitForChild("HumanoidRootPart")
+})
+
+-- Notification on load
 OrionLib:MakeNotification({
     Name = "Script Loaded",
-    Content = "Boss Farm - Captain Elephant is ready!",
+    Content = "Captain Elephant Farm is ready to use",
     Image = "rbxassetid://4483345998",
     Time = 5
 })
-
-OrionLib:Init()
