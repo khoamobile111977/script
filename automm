@@ -286,25 +286,31 @@ end
 
 -- Main farm function with enhanced hovering
 local function farmBoss()
-    local hoverUpdateInterval = 0.5  -- Tăng thời gian giữa các lần cập nhật vị trí
-    local bossEngaged = false
-    local currentTween = nil  -- Biến để theo dõi tween hiện tại
-    local lastPositionUpdate = 0  -- Thời điểm cập nhật vị trí gần nhất
+    local hoverUpdateInterval = 0.3
+    local currentTween = nil
+    local isTweening = false
+    local bossWasFound = false
     
     -- Hàm để hủy tween hiện tại nếu có
     local function cancelCurrentTween()
         if currentTween then
             currentTween:Cancel()
             currentTween = nil
+            isTweening = false
         end
     end
     
     while farmEnabled do
         local boss, location = findBoss()
-        local currentTime = tick()
         
+        -- Nếu boss đã được tìm thấy trong workspace
         if boss and location == "workspace" then
-            bossEngaged = true
+            -- Nếu đang tween đến vị trí spawn, hủy tween đó ngay lập tức
+            if isTweening then
+                cancelCurrentTween()
+            end
+            
+            bossWasFound = true
             
             if boss:FindFirstChild("HumanoidRootPart") then
                 -- Đảm bảo có vũ khí
@@ -316,48 +322,42 @@ local function farmBoss()
                             Image = "rbxassetid://4483345998",
                             Time = 5
                         })
-                        wait(2)
+                        wait(1)
                         continue
                     end
                 end
                 
-                -- Chỉ cập nhật vị trí sau một khoảng thời gian nhất định
-                if currentTime - lastPositionUpdate >= hoverUpdateInterval then
-                    lastPositionUpdate = currentTime
+                -- Cập nhật vị trí tương đối với boss
+                if hoverEnabled then
+                    -- Lấy vị trí của boss
+                    local bossPosition = boss.HumanoidRootPart.Position
                     
-                    -- Hủy tween hiện tại trước khi tạo tween mới
-                    cancelCurrentTween()
+                    -- Tạo vị trí phía trên boss
+                    local abovePosition = Vector3.new(
+                        bossPosition.X, 
+                        bossPosition.Y + hoverHeight, 
+                        bossPosition.Z
+                    )
                     
-                    if hoverEnabled then
-                        -- Lấy vị trí của boss
-                        local bossPosition = boss.HumanoidRootPart.Position
-                        
-                        -- Tạo vị trí phía trên boss
-                        local abovePosition = Vector3.new(
-                            bossPosition.X, 
-                            bossPosition.Y + hoverHeight, 
-                            bossPosition.Z
-                        )
-                        
-                        -- Tạo CFrame hướng xuống boss
-                        local targetCFrame = CFrame.new(abovePosition, bossPosition)
-                        
-                        -- Kiểm tra khoảng cách
-                        local distance = (abovePosition - hrp.Position).Magnitude
-                        
-                        -- Nếu ở gần, đặt CFrame trực tiếp để tránh tween
-                        if distance < 5 then
-                            hrp.CFrame = targetCFrame
-                        else
-                            -- Sử dụng tween nếu ở xa
-                            currentTween = tweenToCFrame(targetCFrame, 150)
-                        end
+                    -- Tạo CFrame hướng xuống boss
+                    local targetCFrame = CFrame.new(abovePosition, bossPosition)
+                    
+                    -- Kiểm tra khoảng cách
+                    local distance = (abovePosition - hrp.Position).Magnitude
+                    
+                    -- Nếu đã ở gần, chỉ cần cập nhật CFrame
+                    if distance < 5 then
+                        hrp.CFrame = targetCFrame
                     else
-                        -- Di chuyển đến vị trí boss
-                        local bossPosition = boss.HumanoidRootPart.Position
-                        if (bossPosition - hrp.Position).Magnitude > 10 then
-                            currentTween = tweenTo(bossPosition, 150)
-                        end
+                        -- Tween đến vị trí mới
+                        hrp.CFrame = CFrame.new(hrp.Position, bossPosition) -- Hướng về phía boss ngay lập tức
+                        tweenToCFrame(targetCFrame, 150)
+                    end
+                else
+                    -- Di chuyển đến vị trí boss theo cách thông thường
+                    local bossPosition = boss.HumanoidRootPart.Position
+                    if (bossPosition - hrp.Position).Magnitude > 10 then
+                        tweenTo(bossPosition, 150)
                     end
                 end
                 
@@ -370,45 +370,70 @@ local function farmBoss()
                     BringMob()
                 end
                 
-                -- Chờ thời gian nhỏ hơn để vẫn phản ứng nhanh với các thay đổi khác
-                wait(0.1)
+                -- Chờ thời gian ngắn trước khi lặp lại
+                wait(hoverUpdateInterval)
             end
-        elseif boss and location == "replicated" and not bossEngaged then
-            bossEngaged = false
-            
-            -- Teleport đến vị trí spawn
-            local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
-            if (spawnPosition - hrp.Position).Magnitude > 20 then
-                cancelCurrentTween()
-                OrionLib:MakeNotification({
-                    Name = "Moving to Spawn",
-                    Content = "Moving to Captain Elephant spawn location",
-                    Image = "rbxassetid://4483345998",
-                    Time = 3
-                })
-                currentTween = tweenTo(spawnPosition, 200)
-                wait(currentTween.TweenInfo.Time + 0.5)  -- Chờ tween hoàn thành và thêm chút thời gian
-            end
-            
-            wait(2)
         else
-            bossEngaged = false
+            -- Nếu boss chưa được tìm thấy hoặc không còn trong workspace
             
-            -- Chỉ teleport nếu không ở khu vực spawn
-            local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
-            if (spawnPosition - hrp.Position).Magnitude > 20 then
-                cancelCurrentTween()
-                OrionLib:MakeNotification({
-                    Name = "Boss Not Found",
-                    Content = "Teleporting to spawn area to wait for Captain Elephant",
-                    Image = "rbxassetid://4483345998",
-                    Time = 5
-                })
-                currentTween = tweenTo(spawnPosition, 200)
-                wait(currentTween.TweenInfo.Time + 0.5)  -- Chờ tween hoàn thành và thêm chút thời gian
+            -- Nếu trước đó đã tìm thấy boss, đợi một chút để xác nhận boss thực sự đã biến mất
+            if bossWasFound then
+                wait(2)
+                -- Kiểm tra lại xem boss có thực sự biến mất không
+                local recheckBoss, recheckLocation = findBoss()
+                if recheckBoss and recheckLocation == "workspace" then
+                    continue -- Boss vẫn còn, quay lại vòng lặp chính
+                end
+                -- Nếu boss thực sự đã biến mất, đặt lại biến theo dõi
+                bossWasFound = false
             end
             
-            wait(3)
+            -- Nếu không tìm thấy boss hoặc boss ở trong ReplicatedStorage
+            -- Và không đang tween đến vị trí spawn
+            if not isTweening then
+                local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
+                
+                -- Chỉ teleport nếu không ở gần khu vực spawn
+                if (spawnPosition - hrp.Position).Magnitude > 20 then
+                    OrionLib:MakeNotification({
+                        Name = "Waiting for Boss",
+                        Content = "Moving to Captain Elephant spawn location",
+                        Image = "rbxassetid://4483345998",
+                        Time = 3
+                    })
+                    
+                    isTweening = true
+                    currentTween = tweenTo(spawnPosition, 200)
+                    
+                    -- Đợi trong khi tween đang diễn ra, nhưng liên tục kiểm tra xem boss đã xuất hiện chưa
+                    local startTime = tick()
+                    local maxWaitTime = 10 -- Thời gian tối đa để đợi tween (giây)
+                    
+                    while isTweening and tick() - startTime < maxWaitTime and farmEnabled do
+                        -- Kiểm tra lại xem boss đã xuất hiện chưa
+                        local checkBoss, checkLocation = findBoss()
+                        if checkBoss and checkLocation == "workspace" then
+                            -- Nếu boss đã xuất hiện, hủy tween hiện tại và quay lại vòng lặp chính
+                            cancelCurrentTween()
+                            break
+                        end
+                        
+                        -- Kiểm tra xem đã đến nơi chưa
+                        if (spawnPosition - hrp.Position).Magnitude < 20 then
+                            isTweening = false
+                            break
+                        }
+                        
+                        wait(0.5) -- Đợi một chút trước khi kiểm tra lại
+                    end
+                    
+                    -- Nếu đã hoàn thành tween hoặc hết thời gian tối đa
+                    isTweening = false
+                end
+            }
+            
+            -- Đợi một chút trước khi kiểm tra lại
+            wait(1)
         end
     end
 end
