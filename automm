@@ -1,4 +1,4 @@
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
 local Window = OrionLib:MakeWindow({Name = "Blox Fruits Boss Farm", HidePremium = false, IntroText = "Boss Farm Script"})
 
 local FarmTab = Window:MakeTab({
