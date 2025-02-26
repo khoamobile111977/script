@@ -1,12 +1,15 @@
--- Load Orion UI Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+-- Load Fluent UI Library
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 -- Create main window
-local Window = OrionLib:MakeWindow({
-    Name = "Boss Farm - Captain Elephant",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "ElephantFarm"
+local Window = Fluent:CreateWindow({
+    Title = "Boss Farm - Captain Elephant",
+    SubTitle = "by Captain Elephant Farm",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 -- Variables
@@ -16,20 +19,13 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local farmEnabled = false
 local fastAttackEnabled = false
 local bringMobEnabled = false
-local hoverEnabled = true  -- New variable for hovering above boss
+local hoverEnabled = true  -- Variable for hovering above boss
 local hoverHeight = 30     -- Height to hover above boss
+local attackRange = 60     -- Attack range variable
 
--- Create main tab
-local FarmTab = Window:MakeTab({
-    Name = "Farm",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Farm section
-local FarmSection = FarmTab:AddSection({
-    Name = "Farm Settings"
-})
+-- Create tabs
+local FarmTab = Window:CreateTab("Farm", "rbxassetid://6026568229")
+local SettingsTab = Window:CreateTab("Settings", "rbxassetid://6031280882")
 
 -- Function to equip Sharkman Karate
 local function equipWeapon()
@@ -111,7 +107,7 @@ function AttackNoCoolDown()
     
     if equippedWeapon:FindFirstChild("LeftClickRemote") then
         local attackCount = 1  
-        local enemiesInRange = GetEnemiesInRange(60)
+        local enemiesInRange = GetEnemiesInRange(attackRange)
         
         for _, enemy in ipairs(enemiesInRange) do
             local direction = (enemy.HumanoidRootPart.Position - character:GetPivot().Position).Unit
@@ -130,7 +126,7 @@ function AttackNoCoolDown()
         for _, enemy in ipairs(enemies) do
             if not enemy:GetAttribute("IsBoat") and IsEntityAlive(enemy) then
                 local head = enemy:FindFirstChild("Head")
-                if head and (playerPos - head.Position).Magnitude <= 60 then
+                if head and (playerPos - head.Position).Magnitude <= attackRange then
                     table.insert(targets, { enemy, head })
                     mainTarget = head
                 end
@@ -284,14 +280,14 @@ local function positionAboveBoss(boss)
     return distance
 end
 
--- Main farm function with enhanced hovering
+-- Improved farm function to fix stuttering issues
 local function farmBoss()
     local hoverUpdateInterval = 0.3
     local currentTween = nil
     local isTweening = false
     local bossWasFound = false
     
-    -- Hàm để hủy tween hiện tại nếu có
+    -- Function to cancel current tween if it exists
     local function cancelCurrentTween()
         if currentTween then
             currentTween:Cancel()
@@ -303,9 +299,9 @@ local function farmBoss()
     while farmEnabled do
         local boss, location = findBoss()
         
-        -- Nếu boss đã được tìm thấy trong workspace
+        -- If boss is found in workspace
         if boss and location == "workspace" then
-            -- Nếu đang tween đến vị trí spawn, hủy tween đó ngay lập tức
+            -- If currently tweening to spawn, cancel it immediately
             if isTweening then
                 cancelCurrentTween()
             end
@@ -313,55 +309,54 @@ local function farmBoss()
             bossWasFound = true
             
             if boss:FindFirstChild("HumanoidRootPart") then
-                -- Đảm bảo có vũ khí
+                -- Ensure weapon is equipped
                 if not character:FindFirstChildOfClass("Tool") then
                     if not equipWeapon() then
-                        OrionLib:MakeNotification({
-                            Name = "Weapon Not Found",
+                        Fluent:Notify({
+                            Title = "Weapon Not Found",
                             Content = "Sharkman Karate not found in backpack",
-                            Image = "rbxassetid://4483345998",
-                            Time = 5
+                            Duration = 5
                         })
                         wait(1)
                         continue
                     end
                 end
                 
-                -- Cập nhật vị trí tương đối với boss
+                -- Update position relative to boss
                 if hoverEnabled then
-                    -- Lấy vị trí của boss
+                    -- Get boss position
                     local bossPosition = boss.HumanoidRootPart.Position
                     
-                    -- Tạo vị trí phía trên boss
+                    -- Create position above boss
                     local abovePosition = Vector3.new(
                         bossPosition.X, 
                         bossPosition.Y + hoverHeight, 
                         bossPosition.Z
                     )
                     
-                    -- Tạo CFrame hướng xuống boss
+                    -- Create CFrame facing down at boss
                     local targetCFrame = CFrame.new(abovePosition, bossPosition)
                     
-                    -- Kiểm tra khoảng cách
+                    -- Check distance
                     local distance = (abovePosition - hrp.Position).Magnitude
                     
-                    -- Nếu đã ở gần, chỉ cần cập nhật CFrame
+                    -- If already close, just update CFrame directly
                     if distance < 5 then
                         hrp.CFrame = targetCFrame
                     else
-                        -- Tween đến vị trí mới
-                        hrp.CFrame = CFrame.new(hrp.Position, bossPosition) -- Hướng về phía boss ngay lập tức
+                        -- Tween to new position
+                        hrp.CFrame = CFrame.new(hrp.Position, bossPosition) -- Face boss immediately
                         tweenToCFrame(targetCFrame, 150)
                     end
                 else
-                    -- Di chuyển đến vị trí boss theo cách thông thường
+                    -- Move to boss position normally
                     local bossPosition = boss.HumanoidRootPart.Position
                     if (bossPosition - hrp.Position).Magnitude > 10 then
                         tweenTo(bossPosition, 150)
                     end
                 end
                 
-                -- Thực hiện tấn công và kéo mob
+                -- Perform attacks and bring mobs
                 if fastAttackEnabled then
                     AttackNoCoolDown()
                 end
@@ -370,192 +365,179 @@ local function farmBoss()
                     BringMob()
                 end
                 
-                -- Chờ thời gian ngắn trước khi lặp lại
+                -- Short wait before continuing loop
                 wait(hoverUpdateInterval)
             end
         else
-            -- Nếu boss chưa được tìm thấy hoặc không còn trong workspace
-            
-            -- Nếu trước đó đã tìm thấy boss, đợi một chút để xác nhận boss thực sự đã biến mất
+            -- If boss was previously found, wait to confirm it's really gone
             if bossWasFound then
                 wait(2)
-                -- Kiểm tra lại xem boss có thực sự biến mất không
+                -- Recheck if boss is still gone
                 local recheckBoss, recheckLocation = findBoss()
                 if recheckBoss and recheckLocation == "workspace" then
-                    continue -- Boss vẫn còn, quay lại vòng lặp chính
+                    continue -- Boss still exists, continue main loop
                 end
-                -- Nếu boss thực sự đã biến mất, đặt lại biến theo dõi
+                -- If boss is really gone, reset tracking variable
                 bossWasFound = false
             end
             
-            -- Nếu không tìm thấy boss hoặc boss ở trong ReplicatedStorage
-            -- Và không đang tween đến vị trí spawn
+            -- If boss not found or in ReplicatedStorage
+            -- And not currently tweening to spawn
             if not isTweening then
                 local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
                 
-                -- Chỉ teleport nếu không ở gần khu vực spawn
+                -- Only teleport if not near spawn area
                 if (spawnPosition - hrp.Position).Magnitude > 20 then
-                    OrionLib:MakeNotification({
-                        Name = "Waiting for Boss",
+                    Fluent:Notify({
+                        Title = "Waiting for Boss",
                         Content = "Moving to Captain Elephant spawn location",
-                        Image = "rbxassetid://4483345998",
-                        Time = 3
+                        Duration = 3
                     })
                     
                     isTweening = true
                     currentTween = tweenTo(spawnPosition, 200)
                     
-                    -- Đợi trong khi tween đang diễn ra, nhưng liên tục kiểm tra xem boss đã xuất hiện chưa
+                    -- Wait while tweening but continuously check if boss appears
                     local startTime = tick()
-                    local maxWaitTime = 10 -- Thời gian tối đa để đợi tween (giây)
+                    local maxWaitTime = 10 -- Max time to wait for tween (seconds)
                     
                     while isTweening and tick() - startTime < maxWaitTime and farmEnabled do
-                        -- Kiểm tra lại xem boss đã xuất hiện chưa
+                        -- Check if boss has appeared
                         local checkBoss, checkLocation = findBoss()
                         if checkBoss and checkLocation == "workspace" then
-                            -- Nếu boss đã xuất hiện, hủy tween hiện tại và quay lại vòng lặp chính
+                            -- If boss appears, cancel current tween and return to main loop
                             cancelCurrentTween()
                             break
                         end
                         
-                        -- Kiểm tra xem đã đến nơi chưa
+                        -- Check if we've arrived
                         if (spawnPosition - hrp.Position).Magnitude < 20 then
                             isTweening = false
                             break
-                        }
+                        end
                         
-                        wait(0.5) -- Đợi một chút trước khi kiểm tra lại
+                        wait(0.5) -- Wait a bit before checking again
                     end
                     
-                    -- Nếu đã hoàn thành tween hoặc hết thời gian tối đa
+                    -- If tween completed or max time reached
                     isTweening = false
                 end
-            }
+            end
             
-            -- Đợi một chút trước khi kiểm tra lại
+            -- Wait before checking again
             wait(1)
         end
     end
 end
--- Toggle for farm
-FarmTab:AddToggle({
-    Name = "Farm Captain Elephant",
+
+-- Farm toggle
+local farmToggle = FarmTab:CreateToggle({
+    Title = "Farm Captain Elephant",
     Default = false,
     Callback = function(Value)
         farmEnabled = Value
         
         if Value then
-            OrionLib:MakeNotification({
-                Name = "Farm Enabled",
+            Fluent:Notify({
+                Title = "Farm Enabled",
                 Content = "Starting to farm Captain Elephant",
-                Image = "rbxassetid://4483345998",
-                Time = 5
+                Duration = 5
             })
             
             task.spawn(farmBoss)
         else
-            OrionLib:MakeNotification({
-                Name = "Farm Disabled",
+            Fluent:Notify({
+                Title = "Farm Disabled",
                 Content = "Stopped farming Captain Elephant",
-                Image = "rbxassetid://4483345998",
-                Time = 5
+                Duration = 5
             })
         end
     end
 })
 
--- Toggle for fast attack
-FarmTab:AddToggle({
-    Name = "Fast Attack",
+-- Fast Attack toggle
+local fastAttackToggle = FarmTab:CreateToggle({
+    Title = "Fast Attack",
     Default = true,
     Callback = function(Value)
         fastAttackEnabled = Value
         
         if Value then
-            OrionLib:MakeNotification({
-                Name = "Fast Attack",
+            Fluent:Notify({
+                Title = "Fast Attack",
                 Content = "Fast Attack enabled",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         else
-            OrionLib:MakeNotification({
-                Name = "Fast Attack",
+            Fluent:Notify({
+                Title = "Fast Attack",
                 Content = "Fast Attack disabled",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         end
     end
 })
 
--- Toggle for bring mob
-FarmTab:AddToggle({
-    Name = "Bring Mob",
+-- Bring Mob toggle
+local bringMobToggle = FarmTab:CreateToggle({
+    Title = "Bring Mob",
     Default = true,
     Callback = function(Value)
         bringMobEnabled = Value
         
         if Value then
-            OrionLib:MakeNotification({
-                Name = "Bring Mob",
+            Fluent:Notify({
+                Title = "Bring Mob",
                 Content = "Bring Mob enabled",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         else
-            OrionLib:MakeNotification({
-                Name = "Bring Mob",
+            Fluent:Notify({
+                Title = "Bring Mob",
                 Content = "Bring Mob disabled",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         end
     end
 })
 
--- New toggle for hover above boss
-FarmTab:AddToggle({
-    Name = "Hover Above Boss",
+-- Hover above boss toggle
+local hoverToggle = FarmTab:CreateToggle({
+    Title = "Hover Above Boss",
     Default = true,
     Callback = function(Value)
         hoverEnabled = Value
         
         if Value then
-            OrionLib:MakeNotification({
-                Name = "Hover Enabled",
+            Fluent:Notify({
+                Title = "Hover Enabled",
                 Content = "Will position above boss's head during farm",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         else
-            OrionLib:MakeNotification({
-                Name = "Hover Disabled",
+            Fluent:Notify({
+                Title = "Hover Disabled",
                 Content = "Regular positioning enabled",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         end
     end
 })
 
--- Add hover height slider
-FarmTab:AddSlider({
-    Name = "Hover Height",
+-- Hover height slider
+local hoverSlider = FarmTab:CreateSlider({
+    Title = "Hover Height",
+    Default = 30,
     Min = 10,
     Max = 50,
-    Default = 30,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 5,
-    ValueName = "units",
     Callback = function(Value)
         hoverHeight = Value
-    end    
+    end
 })
 
--- Add manual teleport button
-FarmTab:AddButton({
-    Name = "Teleport to Captain Elephant",
+-- Teleport button
+FarmTab:CreateButton({
+    Title = "Teleport to Captain Elephant",
     Callback = function()
         local boss, location = findBoss()
         
@@ -574,68 +556,68 @@ FarmTab:AddButton({
                 tweenTo(boss.HumanoidRootPart.Position, 200)
             end
             
-            OrionLib:MakeNotification({
-                Name = "Teleporting",
+            Fluent:Notify({
+                Title = "Teleporting",
                 Content = "Teleporting to Captain Elephant",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         elseif location == "replicated" then
             -- Known spawn location for Captain Elephant
             local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
             
             tweenTo(spawnPosition, 200)
-            OrionLib:MakeNotification({
-                Name = "Teleporting",
+            Fluent:Notify({
+                Title = "Teleporting",
                 Content = "Teleporting to Captain Elephant spawn area",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3
             })
         else
-            OrionLib:MakeNotification({
-                Name = "Boss Not Found",
+            Fluent:Notify({
+                Title = "Boss Not Found",
                 Content = "Captain Elephant not found in workspace or ReplicatedStorage",
-                Image = "rbxassetid://4483345998",
-                Time = 5
+                Duration = 5
             })
         end
     end
 })
 
--- Extra features tab
-local SettingsTab = Window:MakeTab({
-    Name = "Settings",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Add attack range slider
-SettingsTab:AddSlider({
-    Name = "Attack Range",
+-- Attack range slider
+local rangeSlider = SettingsTab:CreateSlider({
+    Title = "Attack Range",
+    Default = 60,
     Min = 10,
     Max = 100,
-    Default = 60,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 5,
-    ValueName = "range",
     Callback = function(Value)
         attackRange = Value
-    end    
+    end
 })
 
--- Initialize
-OrionLib:Init()
+-- Section for theme settings
+local ThemeSection = SettingsTab:CreateSection("UI Settings")
+
+-- Theme picker
+local ThemePicker = SettingsTab:CreateDropdown({
+    Title = "Theme",
+    Values = {"Dark", "Light", "Discord", "Aqua", "Rose"},
+    Multi = false,
+    Default = 1,
+    Callback = function(Value)
+        Window:ChangeTheme(Value)
+    end
+})
+
+-- Initialize and show window
+Window:SelectTab(1)
 
 -- Clean up
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     hrp = character:WaitForChild("HumanoidRootPart")
-end)
+})
 
 -- Notification on load
-OrionLib:MakeNotification({
-    Name = "Script Loaded",
+Fluent:Notify({
+    Title = "Script Loaded",
     Content = "Captain Elephant Farm is ready to use",
-    Image = "rbxassetid://4483345998",
-    Time = 5
+    Duration = 5
 })
