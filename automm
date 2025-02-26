@@ -16,6 +16,9 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local farmEnabled = false
 local fastAttackEnabled = false
 local bringMobEnabled = false
+local attackRange = 60
+local hoverHeight = 30  -- Default hover height
+local bossSpawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
 
 -- Create main tab
 local FarmTab = Window:MakeTab({
@@ -59,6 +62,28 @@ local function tweenTo(destination, speed)
     return tween
 end
 
+-- Function to make character stationary
+local function makeCharacterStationary()
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.PlatformStand = true
+        -- Disable character controls temporarily
+        pcall(function()
+            player.DevComputerMovementMode = Enum.DevComputerMovementMode.Scriptable
+        end)
+    end
+end
+
+-- Function to restore character movement
+local function restoreCharacterMovement()
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.PlatformStand = false
+        -- Re-enable character controls
+        pcall(function()
+            player.DevComputerMovementMode = Enum.DevComputerMovementMode.UserChoice
+        end)
+    end
+end
+
 -- Fast Attack function
 function AttackNoCoolDown()
     local character = player.Character
@@ -95,7 +120,7 @@ function AttackNoCoolDown()
     
     if equippedWeapon:FindFirstChild("LeftClickRemote") then
         local attackCount = 1  
-        local enemiesInRange = GetEnemiesInRange(60)
+        local enemiesInRange = GetEnemiesInRange(attackRange)
         
         for _, enemy in ipairs(enemiesInRange) do
             local direction = (enemy.HumanoidRootPart.Position - character:GetPivot().Position).Unit
@@ -114,7 +139,7 @@ function AttackNoCoolDown()
         for _, enemy in ipairs(enemies) do
             if not enemy:GetAttribute("IsBoat") and IsEntityAlive(enemy) then
                 local head = enemy:FindFirstChild("Head")
-                if head and (playerPos - head.Position).Magnitude <= 60 then
+                if head and (playerPos - head.Position).Magnitude <= attackRange then
                     table.insert(targets, { enemy, head })
                     mainTarget = head
                 end
@@ -208,7 +233,6 @@ local function BringMob()
     end
 end
 
--- Function to find the boss
 -- Enhanced function to find the boss
 local function findBoss()
     -- First check if boss exists in the current workspace
@@ -238,27 +262,26 @@ local function findBoss()
 end
 
 -- Main farm function
--- Main farm function
 local function farmBoss()
+    local positionUpdateConnection = nil
+    
     while farmEnabled do
         local boss, location = findBoss()
         
         if boss then
             -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
             if location == "replicated" then
-                -- Known spawn location for Captain Elephant - you might need to adjust these coordinates
-                local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
-                
                 -- Teleport to spawn location
-                local tween = tweenTo(spawnPosition, 200)
+                local tween = tweenTo(bossSpawnPosition, 200)
                 wait(1)
                 
                 -- After teleporting, check again if boss appears in workspace
                 local checkAttempts = 0
                 while checkAttempts < 5 do
-                    local newBoss = findBoss()
-                    if newBoss and location == "workspace" then
+                    local newBoss, newLocation = findBoss()
+                    if newBoss and newLocation == "workspace" then
                         boss = newBoss
+                        location = newLocation
                         break
                     end
                     checkAttempts = checkAttempts + 1
@@ -267,9 +290,7 @@ local function farmBoss()
             end
             
             -- Continue with existing functionality if boss is in workspace
-            if boss:FindFirstChild("HumanoidRootPart") then
-                local bossPosition = boss.HumanoidRootPart.Position
-                
+            if location == "workspace" and boss:FindFirstChild("HumanoidRootPart") then
                 -- Equip weapon if not equipped
                 if not character:FindFirstChildOfClass("Tool") then
                     if not equipWeapon() then
@@ -284,20 +305,32 @@ local function farmBoss()
                     end
                 end
                 
-                -- Move to boss position
-                local distance = (bossPosition - hrp.Position).Magnitude
-                if distance > 10 then
-                    local tween = tweenTo(bossPosition, 200)
-                    local startTime = tick()
-                    
-                    -- Wait for tween to complete or timeout
-                    while tween and tick() - startTime < 5 and farmEnabled do
-                        if (hrp.Position - bossPosition).Magnitude < 10 then
-                            break
-                        end
-                        wait()
-                    end
+                -- Make character stationary
+                makeCharacterStationary()
+                
+                -- Disconnect previous position update connection if exists
+                if positionUpdateConnection then
+                    positionUpdateConnection:Disconnect()
+                    positionUpdateConnection = nil
                 end
+                
+                -- Create a new position update connection to continuously hover above boss
+                positionUpdateConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    if not farmEnabled then
+                        positionUpdateConnection:Disconnect()
+                        return
+                    end
+                    
+                    if boss and boss:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") then
+                        -- Position hoverHeight studs above the boss's head
+                        local abovePosition = boss.HumanoidRootPart.Position + Vector3.new(0, hoverHeight, 0)
+                        
+                        -- Set the character's position directly (for continuous positioning)
+                        character.HumanoidRootPart.CFrame = CFrame.new(abovePosition) * CFrame.Angles(0, math.rad(character.HumanoidRootPart.Orientation.Y), 0)
+                        character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0) -- Stop any momentum
+                        character.HumanoidRootPart.RotVelocity = Vector3.new(0, 0, 0) -- Stop any rotational momentum
+                    end
+                end)
                 
                 -- Do fast attack if enabled
                 if fastAttackEnabled then
@@ -310,20 +343,37 @@ local function farmBoss()
                 end
             end
         else
+            -- If position update connection exists, disconnect it
+            if positionUpdateConnection then
+                positionUpdateConnection:Disconnect()
+                positionUpdateConnection = nil
+            end
+            
+            -- Restore character movement when not farming
+            restoreCharacterMovement()
+            
             -- If boss not found anywhere, teleport to known spawn area and wait
-            local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
             OrionLib:MakeNotification({
                 Name = "Boss Not Found",
                 Content = "Teleporting to spawn area to wait for Captain Elephant",
                 Image = "rbxassetid://4483345998",
                 Time = 5
             })
-            tweenTo(spawnPosition, 200)
+            tweenTo(bossSpawnPosition, 200)
             wait(5)
         end
         
         wait(0.1)
     end
+    
+    -- Clean up when farming disabled
+    if positionUpdateConnection then
+        positionUpdateConnection:Disconnect()
+        positionUpdateConnection = nil
+    end
+    
+    -- Restore character movement when farming stops
+    restoreCharacterMovement()
 end
 
 -- Toggle for farm
@@ -349,6 +399,9 @@ FarmTab:AddToggle({
                 Image = "rbxassetid://4483345998",
                 Time = 5
             })
+            
+            -- Ensure character movement is restored when farming is disabled
+            restoreCharacterMovement()
         end
     end
 })
@@ -404,7 +457,6 @@ FarmTab:AddToggle({
 })
 
 -- Add manual teleport button
--- Add manual teleport button
 FarmTab:AddButton({
     Name = "Teleport to Captain Elephant",
     Callback = function()
@@ -419,11 +471,7 @@ FarmTab:AddButton({
                 Time = 3
             })
         elseif location == "replicated" then
-            -- Known spawn location for Captain Elephant
-            local spawnPosition = Vector3.new(
-                -13365.529296875, 321.2309875488281, -8484.990234375)
-            
-            tweenTo(spawnPosition, 200)
+            tweenTo(bossSpawnPosition, 200)
             OrionLib:MakeNotification({
                 Name = "Teleporting",
                 Content = "Teleporting to Captain Elephant spawn area",
@@ -448,7 +496,7 @@ local SettingsTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Add teleport distance slider
+-- Add attack range slider
 SettingsTab:AddSlider({
     Name = "Attack Range",
     Min = 10,
@@ -462,6 +510,20 @@ SettingsTab:AddSlider({
     end    
 })
 
+-- Add hover height slider
+SettingsTab:AddSlider({
+    Name = "Hover Height",
+    Min = 5,
+    Max = 50,
+    Default = 30,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "studs",
+    Callback = function(Value)
+        hoverHeight = Value
+    end    
+})
+
 -- Initialize
 OrionLib:Init()
 
@@ -469,7 +531,7 @@ OrionLib:Init()
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     hrp = character:WaitForChild("HumanoidRootPart")
-end)
+})
 
 -- Notification on load
 OrionLib:MakeNotification({
