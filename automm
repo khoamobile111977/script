@@ -247,7 +247,7 @@ local function farmBoss()
             -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
             if location == "replicated" then
                 -- Known spawn location for Captain Elephant - you might need to adjust these coordinates
-                local spawnPosition = Vector3.new(-11571.35, 85.72, -6574.02)
+                local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
                 
                 -- Teleport to spawn location
                 local tween = tweenTo(spawnPosition, 200)
@@ -311,7 +311,7 @@ local function farmBoss()
             end
         else
             -- If boss not found anywhere, teleport to known spawn area and wait
-            local spawnPosition = Vector3.new(-11571.35, 85.72, -6574.02)
+            local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
             OrionLib:MakeNotification({
                 Name = "Boss Not Found",
                 Content = "Teleporting to spawn area to wait for Captain Elephant",
