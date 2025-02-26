@@ -286,37 +286,18 @@ end
 
 -- Main farm function with enhanced hovering
 local function farmBoss()
-    local hoverUpdateInterval = 0.1 -- How often to update hover position
+    local hoverUpdateInterval = 0.1
+    local bossEngaged = false
     
     while farmEnabled do
         local boss, location = findBoss()
         
-        if boss then
-            -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
-            if location == "replicated" then
-                -- Known spawn location for Captain Elephant
-                local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
-                
-                -- Teleport to spawn location
-                local tween = tweenTo(spawnPosition, 200)
-                wait(1)
-                
-                -- After teleporting, check again if boss appears in workspace
-                local checkAttempts = 0
-                while checkAttempts < 5 do
-                    local newBoss, newLocation = findBoss()
-                    if newBoss and newLocation == "workspace" then
-                        boss = newBoss
-                        break
-                    end
-                    checkAttempts = checkAttempts + 1
-                    wait(1)
-                end
-            end
+        if boss and location == "workspace" then
+            -- Boss is in workspace, engage with it
+            bossEngaged = true
             
-            -- Continue with existing functionality if boss is in workspace
             if boss:FindFirstChild("HumanoidRootPart") then
-                -- Equip weapon if not equipped
+                -- Equip weapon if needed
                 if not character:FindFirstChildOfClass("Tool") then
                     if not equipWeapon() then
                         OrionLib:MakeNotification({
@@ -330,57 +311,64 @@ local function farmBoss()
                     end
                 end
                 
-                -- Position above boss's head if hover is enabled
+                -- Position appropriately based on hover setting
                 if hoverEnabled then
-                    local distance = positionAboveBoss(boss)
-                    
-                    -- If we're far away, wait until we get closer
-                    if distance > 50 then
-                        wait(distance/200) -- Wait based on distance/speed
-                    end
+                    positionAboveBoss(boss)
                 else
-                    -- Original behavior - move to boss position
+                    -- Move to boss position
                     local bossPosition = boss.HumanoidRootPart.Position
-                    local distance = (bossPosition - hrp.Position).Magnitude
-                    
-                    if distance > 10 then
-                        local tween = tweenTo(bossPosition, 200)
-                        local startTime = tick()
-                        
-                        -- Wait for tween to complete or timeout
-                        while tween and tick() - startTime < 5 and farmEnabled do
-                            if (hrp.Position - bossPosition).Magnitude < 10 then
-                                break
-                            end
-                            wait()
-                        end
+                    if (bossPosition - hrp.Position).Magnitude > 10 then
+                        tweenTo(bossPosition, 200)
                     end
                 end
                 
-                -- Do fast attack if enabled
+                -- Attack and bring mobs
                 if fastAttackEnabled then
                     AttackNoCoolDown()
                 end
                 
-                -- Bring mobs if enabled
                 if bringMobEnabled then
                     BringMob()
                 end
                 
-                -- Short wait to continuously update hover position
+                -- Stay with this boss until it's gone
                 wait(hoverUpdateInterval)
             end
-        else
-            -- If boss not found anywhere, teleport to known spawn area and wait
+        elseif boss and location == "replicated" and not bossEngaged then
+            -- Boss exists but isn't spawned in workspace
+            bossEngaged = false
+            
+            -- Teleport to spawn location only if we're not already engaged
             local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
-            OrionLib:MakeNotification({
-                Name = "Boss Not Found",
-                Content = "Teleporting to spawn area to wait for Captain Elephant",
-                Image = "rbxassetid://4483345998",
-                Time = 5
-            })
-            tweenTo(spawnPosition, 200)
-            wait(5)
+            if (spawnPosition - hrp.Position).Magnitude > 20 then
+                OrionLib:MakeNotification({
+                    Name = "Moving to Spawn",
+                    Content = "Moving to Captain Elephant spawn location",
+                    Image = "rbxassetid://4483345998",
+                    Time = 3
+                })
+                tweenTo(spawnPosition, 200)
+            end
+            
+            -- Wait for boss to spawn
+            wait(2)
+        else
+            -- No boss found anywhere
+            bossEngaged = false
+            
+            -- Only teleport to spawn if we're not already there
+            local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
+            if (spawnPosition - hrp.Position).Magnitude > 20 then
+                OrionLib:MakeNotification({
+                    Name = "Boss Not Found",
+                    Content = "Teleporting to spawn area to wait for Captain Elephant",
+                    Image = "rbxassetid://4483345998",
+                    Time = 5
+                })
+                tweenTo(spawnPosition, 200)
+            end
+            
+            wait(3)
         end
     end
 end
