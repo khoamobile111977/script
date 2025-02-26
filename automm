@@ -1,305 +1,413 @@
-function setTeam(teamName)
-    local args = {
-        [1] = "SetTeam",
-        [2] = teamName
-    }
-    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+-- Load Orion UI Library
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/khoamobile111977/script/refs/heads/main/orionui'))()
+
+-- Create main window
+local Window = OrionLib:MakeWindow({
+    Name = "Boss Farm - Captain Elephant",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "ElephantFarm"
+})
+
+-- Variables
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local farmEnabled = false
+local fastAttackEnabled = false
+local bringMobEnabled = false
+
+-- Create main tab
+local FarmTab = Window:MakeTab({
+    Name = "Farm",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Farm section
+local FarmSection = FarmTab:AddSection({
+    Name = "Farm Settings"
+})
+
+-- Function to equip Sharkman Karate
+local function equipWeapon()
+    local backpack = player.Backpack
+    local weapon = backpack:FindFirstChild("Sharkman Karate")
+    
+    if weapon then
+        character.Humanoid:EquipTool(weapon)
+        return true
+    else
+        if character:FindFirstChild("Sharkman Karate") then
+            return true
+        end
+        return false
+    end
 end
 
-_G.Select_Marines = true
+-- Tween function
+local function tweenTo(destination, speed)
+    if not speed then speed = 350 end
+    
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    local distance = (destination - hrp.Position).Magnitude
+    local tweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(distance/speed, Enum.EasingStyle.Linear)
+    
+    local tween = tweenService:Create(hrp, info, {CFrame = CFrame.new(destination)})
+    tween:Play()
+    return tween
+end
 
-spawn(function()
-    while wait() do
-        if _G.Select_Pirates then
-            setTeam("Pirates")
-            _G.Select_Pirates = false  
+-- Fast Attack function
+function AttackNoCoolDown()
+    local character = player.Character
+    if not character then return end
+    
+    local equippedWeapon = nil
+    for _, item in ipairs(character:GetChildren()) do
+        if item:IsA("Tool") then
+            equippedWeapon = item
             break
         end
     end
-end)
-spawn(function()
-    while wait() do
-        if _G.Select_Marines then
-            setTeam("Marines")
-            _G.Select_Marines = false  
-            break
-        end
+    
+    if not equippedWeapon then return end
+    
+    local function IsEntityAlive(entity)
+        return entity and entity:FindFirstChild("Humanoid") and entity.Humanoid.Health > 0
     end
-end)
-if _G["L_12_34"] then
-    local L_1A, L_2B, L_3C = game:GetService("ReplicatedStorage"), game:GetService("Players"), game.Players.LocalPlayer
-    local L_4D = {L_5E = true, L_6F = 0.001, L_7G = 200, L_8H = 200}
-    local L_9I = L_1A:WaitForChild("Modules"):WaitForChild("Net")
-
-    local function L_10J(L_11K)
-        return L_11K and L_11K:FindFirstChild("Humanoid") and L_11K.Humanoid.Health > 0
-    end
-
-    local function L_12L()
-        local L_13M = {}
-        for _, L_14N in ipairs(workspace.Enemies:GetChildren()) do
-            if L_10J(L_14N) then
-                local L_15O = L_14N:FindFirstChild("Head")
-                if L_15O and L_3C:DistanceFromCharacter(L_15O.Position) <= L_4D.L_7G then
-                    table.insert(L_13M, {["Enemy"] = L_14N, ["Target"] = L_15O})
-                end
+    
+    local function GetEnemiesInRange(range)
+        local enemies = game:GetService("Workspace").Enemies:GetChildren()
+        local targets = {}
+        local playerPos = character:GetPivot().Position
+        
+        for _, enemy in ipairs(enemies) do
+            local primaryPart = enemy:FindFirstChild("HumanoidRootPart")
+            if primaryPart and IsEntityAlive(enemy) and (primaryPart.Position - playerPos).Magnitude <= range then
+                table.insert(targets, enemy)
             end
         end
-        return L_13M
+        
+        return targets
     end
-
-    local function L_16P()
-        local L_17Q, L_18R = 0, 0
-        return function()
-            local L_19S = tick()
-            if L_19S - L_17Q >= 1 then
-                L_17Q, L_18R = L_19S, 0
-            end
-            L_18R = L_18R + 1
-            if L_18R <= L_4D.L_8H then
-                return true
-            else
-                task.wait(0.005)
-                return false
-            end
-        end
-    end
-
-    task.spawn(function()
-        while _G["L_12_34"] do
-            if L_4D.L_5E and L_16P() then
-                for _, L_20T in ipairs(L_12L()) do
-                    L_9I["RE/RegisterAttack"]:FireServer(0)
-                    L_9I["RE/RegisterHit"]:FireServer(L_20T.Target, {{L_20T.Enemy, L_20T.Target}})
-                end
-            end
-            task.wait(L_4D.L_6F)
-        end
-    end)
-end
-
-local G2L_REQUIRE = require;
-local G2L_MODULES = {};
-local function require(Module:ModuleScript)
-	local ModuleState = G2L_MODULES[Module];
-	if ModuleState then
-		if not ModuleState.Required then
-			ModuleState.Required = true;
-			ModuleState.Value = ModuleState.Closure();
-		end
-		return ModuleState.Value;
-	end;
-	return G2L_REQUIRE(Module);
-end
-
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-
-RunService.RenderStepped:Connect(function(frame)
-	local fps = math.round(1 / frame)    
-	local pingValue = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-end)
-
-function setTime()
-	local GameTime = math.floor(workspace.DistributedGameTime+0.5)
-	local Hour = math.floor(GameTime/(60^2))%24
-	local Minute = math.floor(GameTime/(60^1))%60
-	local Second = math.floor(GameTime/(60^0))%60
-end
-
-spawn(function()
-	while task.wait() do
-		pcall(function()
-			setTime()
-		end)
-	end
-end)
-
-spawn(function()
-	pcall(function()
-		while wait(1) do  
-			local foundFruit = false
-			for i, v in pairs(game.Workspace:GetChildren()) do
-				if string.find(v.Name, "Fruit") then
-					foundFruit = true
-				end
-			end
-		end
-	end)
-end)   
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart", 9)
-local Humanoid = Character:WaitForChild("Humanoid", 9)
-
-getgenv().TweenSpeed = 350
-
-local placeid = game.PlaceId
-
-function WaitHRP(q0) 
-    if not q0 then return end
-    return q0.Character:WaitForChild("HumanoidRootPart", 9) 
-end
-
-function Tween(Pos)
-    if game.Players.LocalPlayer.Character.Humanoid.Health > 0 and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        Distance = (Pos.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-        if game.Players.LocalPlayer.Character.Humanoid.Sit == true then
-            game.Players.LocalPlayer.Character.Humanoid.Sit = false
-        end
-        pcall(
-            function()
-                Tweeb =
-                    game:GetService("TweenService"):Create(
-                    game.Players.LocalPlayer.Character.HumanoidRootPart,
-                    TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
-                    {CFrame = Pos}
-                )
-            end
-        )
-        Tweeb:Play()
-        if Distance <= 370 then
-            Tweeb:Cancel()
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Pos
-        end
-    end
-end
-
-function Taixiu(Pos)
-    repeat wait()
-        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Pos
-        game:GetService("Players").LocalPlayer.Character:WaitForChild("Humanoid"):ChangeState(15)
-        wait(2)
-        game.Players.LocalPlayer.Character.PrimaryPart.CFrame = Pos
-        wait(3)
-    until (Pos.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 2000
-end
-
-function InstanceTween(P)
-    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = P
-end
-
-spawn(function()
-        while wait() do
+    
+    if equippedWeapon:FindFirstChild("LeftClickRemote") then
+        local attackCount = 1  
+        local enemiesInRange = GetEnemiesInRange(60)
+        
+        for _, enemy in ipairs(enemiesInRange) do
+            local direction = (enemy.HumanoidRootPart.Position - character:GetPivot().Position).Unit
             pcall(function()
-                if _G["DitBossDoughKing"] or _G["DitBossIndra"] or NoCLip == true then
-                    if not game.Players.LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyGyro") then
-                        local Noclip = Instance.new("BodyVelocity")
-                        Noclip.Name = "BodyClip"
-                        Noclip.Parent = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart
-                        Noclip.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        Noclip.Velocity = Vector3.new(0, 0, 0)
-                        for i, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
-                            if v:IsA("BasePart") then
-                                v.CanCollide = false
-                            end
-                        end
-                    end
-                else
-                    game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyClip"):Destroy()
-                end
+                equippedWeapon.LeftClickRemote:FireServer(direction, attackCount)
             end)
+            attackCount = attackCount + 1
+            if attackCount > 1000000000 then attackCount = 1 end
         end
-    end)
-
-local function EquipTool(toolName)
-    local tool = LocalPlayer.Backpack:FindFirstChild(toolName)
-    if tool and Character and Character:FindFirstChild("Humanoid") then
-        task.wait(0.1)
-        Character.Humanoid:EquipTool(tool)
+    else
+        local targets = {}
+        local enemies = game:GetService("Workspace").Enemies:GetChildren()
+        local playerPos = character:GetPivot().Position
+        local mainTarget = nil
+        
+        for _, enemy in ipairs(enemies) do
+            if not enemy:GetAttribute("IsBoat") and IsEntityAlive(enemy) then
+                local head = enemy:FindFirstChild("Head")
+                if head and (playerPos - head.Position).Magnitude <= 60 then
+                    table.insert(targets, { enemy, head })
+                    mainTarget = head
+                end
+            end
+        end
+        
+        if not mainTarget then return end
+        
+        pcall(function()
+            local storage = game:GetService("ReplicatedStorage")
+            local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
+            local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
+            
+            if #targets > 0 then
+                attackEvent:FireServer(0.000000001)
+                hitEvent:FireServer(mainTarget, targets)
+            else
+                task.wait(0.000000001)
+            end
+        end)
     end
 end
 
-local function AutoHaki()
-    if not Character:FindFirstChild("HasBuso") then
-        ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+-- Bring Mob function
+local function GetMobPosition(EnemiesName)
+    local pos
+    local count = 0
+    
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == EnemiesName then
+            if not pos then
+                pos = v.HumanoidRootPart.Position
+            else
+                pos = pos + v.HumanoidRootPart.Position
+            end
+            count = count + 1
+        end
     end
+    
+    if count > 0 then
+        pos = pos / count
+        return pos
+    end
+    return nil
 end
 
-local function CheckStun()
-    local stun = Character:FindFirstChild("Stun")
-    return stun and stun.Value ~= 0 or false
+local function TweenObject(Object, Pos, Speed)
+    if Speed == nil then Speed = 350 end
+    local Distance = (Pos.Position - Object.Position).Magnitude
+    local tweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(Distance/Speed, Enum.EasingStyle.Linear)
+    local tween = tweenService:Create(Object, info, {CFrame = Pos})
+    tween:Play()
+    return tween
 end
 
-CheckStun()
-
-local ChooseWeapon = "Melee"
-local SelectWeapon = nil
-task.spawn(function()
-    while task.wait(0.5) do
-        for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            if tool.ToolTip == ChooseWeapon then
-                SelectWeapon = tool.Name
-                break
+local function BringMob()
+    local ememe = game.Workspace.Enemies:GetChildren()
+    if #ememe > 0 then
+        local totalpos = {}
+        for _, v in pairs(ememe) do
+            if not totalpos[v.Name] then
+                local pos = GetMobPosition(v.Name)
+                if pos then
+                    totalpos[v.Name] = pos
+                end
+            end
+        end
+        
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                if (v.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude <= 350 then
+                    for k, f in pairs(totalpos) do
+                        if k and v.Name == k and f then
+                            local targetCFrame = CFrame.new(f.X, f.Y, f.Z)
+                            local distance = (v.HumanoidRootPart.Position - targetCFrame.Position).Magnitude
+                            
+                            if distance > 3 and distance <= 280 then
+                                TweenObject(v.HumanoidRootPart, targetCFrame, 300)
+                                v.HumanoidRootPart.CanCollide = false
+                                v.Humanoid.WalkSpeed = 0
+                                v.Humanoid.JumpPower = 0
+                                v.Humanoid:ChangeState(14)
+                                sethiddenproperty(player, "SimulationRadius", math.huge)
+                            end
+                        end
+                    end
+                end
             end
         end
     end
+end
+
+-- Function to find the boss
+local function findBoss()
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == "Captain Elephant" and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Main farm function
+local function farmBoss()
+    while farmEnabled do
+        local boss = findBoss()
+        
+        if boss and boss:FindFirstChild("HumanoidRootPart") then
+            local bossPosition = boss.HumanoidRootPart.Position
+            
+            -- Equip weapon if not equipped
+            if not character:FindFirstChildOfClass("Tool") then
+                if not equipWeapon() then
+                    OrionLib:MakeNotification({
+                        Name = "Weapon Not Found",
+                        Content = "Sharkman Karate not found in backpack",
+                        Image = "rbxassetid://4483345998",
+                        Time = 5
+                    })
+                    wait(2)
+                    continue
+                end
+            end
+            
+            -- Move to boss position
+            local distance = (bossPosition - hrp.Position).Magnitude
+            if distance > 10 then
+                local tween = tweenTo(bossPosition, 200)
+                local startTime = tick()
+                
+                -- Wait for tween to complete or timeout
+                while tween and tick() - startTime < 5 and farmEnabled do
+                    if (hrp.Position - bossPosition).Magnitude < 10 then
+                        break
+                    end
+                    wait()
+                end
+            end
+            
+            -- Do fast attack if enabled
+            if fastAttackEnabled then
+                AttackNoCoolDown()
+            end
+            
+            -- Bring mobs if enabled
+            if bringMobEnabled then
+                BringMob()
+            end
+        else
+            -- If boss not found, wait a bit before looking again
+            wait(1)
+        end
+        
+        wait(0.1)
+    end
+end
+
+-- Toggle for farm
+FarmTab:AddToggle({
+    Name = "Farm Captain Elephant",
+    Default = false,
+    Callback = function(Value)
+        farmEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Farm Enabled",
+                Content = "Starting to farm Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            
+            task.spawn(farmBoss)
+        else
+            OrionLib:MakeNotification({
+                Name = "Farm Disabled",
+                Content = "Stopped farming Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+        end
+    end
+})
+
+-- Toggle for fast attack
+FarmTab:AddToggle({
+    Name = "Fast Attack",
+    Default = true,
+    Callback = function(Value)
+        fastAttackEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Fast Attack",
+                Content = "Fast Attack enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Fast Attack",
+                Content = "Fast Attack disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Toggle for bring mob
+FarmTab:AddToggle({
+    Name = "Bring Mob",
+    Default = true,
+    Callback = function(Value)
+        bringMobEnabled = Value
+        
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Bring Mob",
+                Content = "Bring Mob enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Bring Mob",
+                Content = "Bring Mob disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Add manual teleport button
+FarmTab:AddButton({
+    Name = "Teleport to Captain Elephant",
+    Callback = function()
+        local boss = findBoss()
+        if boss and boss:FindFirstChild("HumanoidRootPart") then
+            tweenTo(boss.HumanoidRootPart.Position, 200)
+            OrionLib:MakeNotification({
+                Name = "Teleporting",
+                Content = "Teleporting to Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Boss Not Found",
+                Content = "Captain Elephant not found in workspace",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+        end
+    end
+})
+
+-- Extra features tab
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Add teleport distance slider
+SettingsTab:AddSlider({
+    Name = "Attack Range",
+    Min = 10,
+    Max = 100,
+    Default = 60,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 5,
+    ValueName = "range",
+    Callback = function(Value)
+        attackRange = Value
+    end    
+})
+
+-- Initialize
+OrionLib:Init()
+
+-- Clean up
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    hrp = character:WaitForChild("HumanoidRootPart")
 end)
 
-local CongCake = CFrame.new(-2009.2802734375, 4532.97216796875, -14937.3076171875)
-
-spawn(function()
-    while wait() do
-        if _G["DitBossDoughKing"] then
-            pcall(function()
-                if game:GetService("Workspace").Enemies:FindFirstChild("Dough King") then
-                    for v1440, v1441 in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                        if (v1441.Name == "Dough King") then
-                            if (v1441:FindFirstChild("Humanoid") and v1441:FindFirstChild("HumanoidRootPart") and (v1441.Humanoid.Health > 0)) then
-                                repeat
-                                    task.wait();
-                                    AutoHaki();
-                                    EquipTool(SelectWeapon);
-                                    v1441.HumanoidRootPart.CanCollide = false;
-                                    v1441.Humanoid.WalkSpeed = 0;
-                                    v1441.HumanoidRootPart.Size = Vector3.new(60, 60, 60);
-                                    Tween(v1441.HumanoidRootPart.CFrame * Pos);
-                                    _G["L_12_34"] = true
-                                until not _G["DitBossDoughKing"] or not v1441.Parent or (v1441.Humanoid.Health <= 0)
-                            end
-                        end
-                    end
-                else 
-                    Tween(CongCake)
-                end
-            end);
-        end
-    end
-end);
-
-local AdminPos = CFrame.new(-5344.822265625, 423.98541259766, -2725.0930175781)
-
-spawn(function()
-    while wait() do
-        if _G["DitBossIndra"] then
-            pcall(function()
-                if game:GetService("Workspace").Enemies:FindFirstChild("rip_indra True Form") or game:GetService("Workspace").Enemies:FindFirstChild("rip_indra") then
-                    for v1440, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-                        if v.Name == ("rip_indra True Form" or v.Name == "rip_indra") and v.Humanoid.Health > 0 and v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
-                            if (v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and (v.Humanoid.Health > 0)) then
-                                repeat
-                                    task.wait();
-                                    AutoHaki();
-                                    EquipTool(SelectWeapon);
-                                    v.HumanoidRootPart.CanCollide = false;
-                                    v.Humanoid.WalkSpeed = 0;
-                                    v.HumanoidRootPart.Size = Vector3.new(60, 60, 60);
-                                    Tween(v.HumanoidRootPart.CFrame * Pos);
-                                    _G["L_12_34"] = true
-                                until not _G["DitBossIndra"] or not v.Parent or (v.Humanoid.Health <= 0)
-                            end
-                        end
-                    end
-                else 
-                    Tween(AdminPos)
-                end
-            end);
-        end
-    end
-end);
+-- Notification on load
+OrionLib:MakeNotification({
+    Name = "Script Loaded",
+    Content = "Captain Elephant Farm is ready to use",
+    Image = "rbxassetid://4483345998",
+    Time = 5
+})
