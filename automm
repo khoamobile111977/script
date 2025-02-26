@@ -286,18 +286,28 @@ end
 
 -- Main farm function with enhanced hovering
 local function farmBoss()
-    local hoverUpdateInterval = 0.1
+    local hoverUpdateInterval = 0.5  -- Tăng thời gian giữa các lần cập nhật vị trí
     local bossEngaged = false
+    local currentTween = nil  -- Biến để theo dõi tween hiện tại
+    local lastPositionUpdate = 0  -- Thời điểm cập nhật vị trí gần nhất
+    
+    -- Hàm để hủy tween hiện tại nếu có
+    local function cancelCurrentTween()
+        if currentTween then
+            currentTween:Cancel()
+            currentTween = nil
+        end
+    end
     
     while farmEnabled do
         local boss, location = findBoss()
+        local currentTime = tick()
         
         if boss and location == "workspace" then
-            -- Boss is in workspace, engage with it
             bossEngaged = true
             
             if boss:FindFirstChild("HumanoidRootPart") then
-                -- Equip weapon if needed
+                -- Đảm bảo có vũ khí
                 if not character:FindFirstChildOfClass("Tool") then
                     if not equipWeapon() then
                         OrionLib:MakeNotification({
@@ -311,18 +321,47 @@ local function farmBoss()
                     end
                 end
                 
-                -- Position appropriately based on hover setting
-                if hoverEnabled then
-                    positionAboveBoss(boss)
-                else
-                    -- Move to boss position
-                    local bossPosition = boss.HumanoidRootPart.Position
-                    if (bossPosition - hrp.Position).Magnitude > 10 then
-                        tweenTo(bossPosition, 200)
+                -- Chỉ cập nhật vị trí sau một khoảng thời gian nhất định
+                if currentTime - lastPositionUpdate >= hoverUpdateInterval then
+                    lastPositionUpdate = currentTime
+                    
+                    -- Hủy tween hiện tại trước khi tạo tween mới
+                    cancelCurrentTween()
+                    
+                    if hoverEnabled then
+                        -- Lấy vị trí của boss
+                        local bossPosition = boss.HumanoidRootPart.Position
+                        
+                        -- Tạo vị trí phía trên boss
+                        local abovePosition = Vector3.new(
+                            bossPosition.X, 
+                            bossPosition.Y + hoverHeight, 
+                            bossPosition.Z
+                        )
+                        
+                        -- Tạo CFrame hướng xuống boss
+                        local targetCFrame = CFrame.new(abovePosition, bossPosition)
+                        
+                        -- Kiểm tra khoảng cách
+                        local distance = (abovePosition - hrp.Position).Magnitude
+                        
+                        -- Nếu ở gần, đặt CFrame trực tiếp để tránh tween
+                        if distance < 5 then
+                            hrp.CFrame = targetCFrame
+                        else
+                            -- Sử dụng tween nếu ở xa
+                            currentTween = tweenToCFrame(targetCFrame, 150)
+                        end
+                    else
+                        -- Di chuyển đến vị trí boss
+                        local bossPosition = boss.HumanoidRootPart.Position
+                        if (bossPosition - hrp.Position).Magnitude > 10 then
+                            currentTween = tweenTo(bossPosition, 150)
+                        end
                     end
                 end
                 
-                -- Attack and bring mobs
+                -- Thực hiện tấn công và kéo mob
                 if fastAttackEnabled then
                     AttackNoCoolDown()
                 end
@@ -331,48 +370,48 @@ local function farmBoss()
                     BringMob()
                 end
                 
-                -- Stay with this boss until it's gone
-                wait(hoverUpdateInterval)
+                -- Chờ thời gian nhỏ hơn để vẫn phản ứng nhanh với các thay đổi khác
+                wait(0.1)
             end
         elseif boss and location == "replicated" and not bossEngaged then
-            -- Boss exists but isn't spawned in workspace
             bossEngaged = false
             
-            -- Teleport to spawn location only if we're not already engaged
+            -- Teleport đến vị trí spawn
             local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
             if (spawnPosition - hrp.Position).Magnitude > 20 then
+                cancelCurrentTween()
                 OrionLib:MakeNotification({
                     Name = "Moving to Spawn",
                     Content = "Moving to Captain Elephant spawn location",
                     Image = "rbxassetid://4483345998",
                     Time = 3
                 })
-                tweenTo(spawnPosition, 200)
+                currentTween = tweenTo(spawnPosition, 200)
+                wait(currentTween.TweenInfo.Time + 0.5)  -- Chờ tween hoàn thành và thêm chút thời gian
             end
             
-            -- Wait for boss to spawn
             wait(2)
         else
-            -- No boss found anywhere
             bossEngaged = false
             
-            -- Only teleport to spawn if we're not already there
+            -- Chỉ teleport nếu không ở khu vực spawn
             local spawnPosition = Vector3.new(-13365.529296875, 321.2309875488281, -8484.990234375)
             if (spawnPosition - hrp.Position).Magnitude > 20 then
+                cancelCurrentTween()
                 OrionLib:MakeNotification({
                     Name = "Boss Not Found",
                     Content = "Teleporting to spawn area to wait for Captain Elephant",
                     Image = "rbxassetid://4483345998",
                     Time = 5
                 })
-                tweenTo(spawnPosition, 200)
+                currentTween = tweenTo(spawnPosition, 200)
+                wait(currentTween.TweenInfo.Time + 0.5)  -- Chờ tween hoàn thành và thêm chút thời gian
             end
             
             wait(3)
         end
     end
 end
-
 -- Toggle for farm
 FarmTab:AddToggle({
     Name = "Farm Captain Elephant",
