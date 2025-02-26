@@ -291,7 +291,7 @@ local function farmBoss()
     while farmEnabled do
         local boss, location = findBoss()
         
-        if boss then
+        if boss and not fastAttackEnabled then
             -- If boss is in ReplicatedStorage, we need to teleport to its spawn location
             if location == "replicated" then
                 -- Known spawn location for Captain Elephant
