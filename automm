@@ -1,0 +1,516 @@
+-- Load OrionLib
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+
+-- Create window
+local Window = OrionLib:MakeWindow({
+    Name = "Boss Farm GUI", 
+    HidePremium = false, 
+    SaveConfig = true, 
+    ConfigFolder = "ElephantFarm"
+})
+
+-- Configuration
+local Config = {
+    BossName = "Captain Elephant",
+    ToolName = "Combat", -- Default tool
+    HoverHeight = 30,
+    AutoFarm = false,
+    FastAttack = false,
+    BringMob = false,
+    TweenSpeed = 300
+}
+
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+local Backpack = LocalPlayer:WaitForChild("Backpack")
+
+-- Function to get available tools
+local function GetAvailableTools()
+    local tools = {}
+    for _, tool in pairs(Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            table.insert(tools, tool.Name)
+        end
+    end
+    for _, tool in pairs(Character:GetChildren()) do
+        if tool:IsA("Tool") then
+            table.insert(tools, tool.Name)
+        end
+    end
+    return tools
+end
+
+-- Function to equip tool
+local function EquipTool(toolName)
+    local tool = Backpack:FindFirstChild(toolName)
+    if tool and Character and Humanoid then
+        task.wait(0.1)
+        Humanoid:EquipTool(tool)
+        return true
+    end
+    return false
+end
+
+-- Tween function
+local function TweenTo(destination, speed)
+    if not speed then speed = Config.TweenSpeed end
+    
+    local Distance = (destination - HumanoidRootPart.Position).Magnitude
+    local TweenService = game:GetService("TweenService")
+    local TweenInfo = TweenInfo.new(Distance/speed, Enum.EasingStyle.Linear)
+    
+    local Tween = TweenService:Create(HumanoidRootPart, TweenInfo, {CFrame = CFrame.new(destination)})
+    Tween:Play()
+    
+    return Tween
+end
+
+-- Check if target is valid
+local function IsValid(target)
+    return target and target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0
+end
+
+-- Get enemies in range
+local function GetEnemiesInRange(range)
+    local enemies = {}
+    for _, enemy in ipairs(workspace.Enemies:GetChildren()) do
+        if IsValid(enemy) and enemy.Name == Config.BossName then
+            local head = enemy:FindFirstChild("Head") or enemy:FindFirstChild("HumanoidRootPart")
+            if head and LocalPlayer:DistanceFromCharacter(head.Position) <= range then
+                table.insert(enemies, {["Enemy"] = enemy, ["Target"] = head})
+            end
+        end
+    end
+    return enemies
+end
+
+-- Fast attack rate limiter
+local function CreateRateLimiter()
+    local lastReset, hitCount = 0, 0
+    return function()
+        local currentTime = tick()
+        if currentTime - lastReset >= 1 then
+            lastReset, hitCount = currentTime, 0
+        end
+        hitCount = hitCount + 1
+        if hitCount <= 200 then
+            return true
+        else
+            task.wait(0.005)
+            return false
+        end
+    end
+end
+
+-- BringMob function
+local TweenObject = function(Object, Pos, Speed)
+    if Speed == nil then Speed = 350 end
+    local Distance = (Pos.Position - Object.Position).Magnitude
+    local tweenService = game:GetService("TweenService")
+    local info = TweenInfo.new(Distance/Speed, Enum.EasingStyle.Linear)
+    tween1 = tweenService:Create(Object, info, {CFrame = Pos})
+    tween1:Play()
+end
+
+local GetMobPosition = function(EnemiesName)
+    local pos
+    local count = 0
+    for r, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == EnemiesName then
+            if not pos then
+                pos = v.HumanoidRootPart.Position
+            else
+                pos = pos + v.HumanoidRootPart.Position
+            end
+            count = count + 1
+        end
+    end
+    pos = pos / count
+    return pos
+end
+
+local BringMob = function(value)
+    if value then
+        local ememe = game.Workspace.Enemies:GetChildren()
+        if #ememe > 0 then
+            local totalpos = {}
+            for _, v in pairs(ememe) do
+                if not totalpos[v.Name] then
+                    totalpos[v.Name] = GetMobPosition(v.Name)
+                end
+            end
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                    if (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 350 then
+                        for k, f in pairs(totalpos) do
+                            if k and v.Name == k and f then
+                                Gay = CFrame.new(f.X, f.Y, f.Z)
+                                Cac = (v.HumanoidRootPart.Position - Gay.Position).Magnitude
+                                
+                                if Cac > 3 and Cac <= 280 then
+                                    TweenObject(v.HumanoidRootPart, Gay, 300)
+                                    v.HumanoidRootPart.CanCollide = false
+                                    v.Humanoid.WalkSpeed = 0
+                                    v.Humanoid.JumpPower = 0
+                                    v.Humanoid:ChangeState(14)
+                                    sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Initialize the rate limiter
+local CanAttack = CreateRateLimiter()
+
+-- Direct Boss Reference (as requested)
+local function GetBoss()
+    -- First try to get direct indexing (as you requested)
+    local directBoss = workspace.Enemies["Captain Elephant"]
+    if directBoss and IsValid(directBoss) then
+        return directBoss
+    end
+    
+    -- Fallback method if direct indexing fails
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == Config.BossName and IsValid(v) then
+            return v
+        end
+    end
+    
+    return nil
+end
+
+-- Fast Attack Implementation
+local function EnableFastAttack()
+    if Config.FastAttack then
+        local L_1A, L_2B, L_3C = game:GetService("ReplicatedStorage"), game:GetService("Players"), game.Players.LocalPlayer
+        local L_4D = {L_5E = true, L_6F = 0.001, L_7G = 200, L_8H = 200}
+        local L_9I = L_1A:WaitForChild("Modules"):WaitForChild("Net")
+
+        local function L_10J(L_11K)
+            return L_11K and L_11K:FindFirstChild("Humanoid") and L_11K.Humanoid.Health > 0
+        end
+
+        local function L_12L()
+            local L_13M = {}
+            for _, L_14N in ipairs(workspace.Enemies:GetChildren()) do
+                if L_10J(L_14N) then
+                    local L_15O = L_14N:FindFirstChild("Head")
+                    if L_15O and L_3C:DistanceFromCharacter(L_15O.Position) <= L_4D.L_7G then
+                        table.insert(L_13M, {["Enemy"] = L_14N, ["Target"] = L_15O})
+                    end
+                end
+            end
+            return L_13M
+        end
+
+        local function L_16P()
+            local L_17Q, L_18R = 0, 0
+            return function()
+                local L_19S = tick()
+                if L_19S - L_17Q >= 1 then
+                    L_17Q, L_18R = L_19S, 0
+                end
+                L_18R = L_18R + 1
+                if L_18R <= L_4D.L_8H then
+                    return true
+                else
+                    task.wait(0.005)
+                    return false
+                end
+            end
+        end
+
+        _G["L_12_34"] = Config.FastAttack
+        
+        task.spawn(function()
+            while task.wait(L_4D.L_6F) do
+                if not _G["L_12_34"] then break end
+                
+                if L_4D.L_5E and L_16P() then
+                    for _, L_20T in ipairs(L_12L()) do
+                        L_9I["RE/RegisterAttack"]:FireServer(0)
+                        L_9I["RE/RegisterHit"]:FireServer(L_20T.Target, {{L_20T.Enemy, L_20T.Target}})
+                    end
+                end
+            end
+        end)
+    else
+        _G["L_12_34"] = false
+    end
+end
+
+-- Main farm function
+local farming = false
+local function StartFarming()
+    if farming then return end
+    farming = true
+    
+    task.spawn(function()
+        while task.wait(0.1) do
+            if not Config.AutoFarm or not farming then 
+                farming = false
+                break 
+            end
+            
+            -- Use the direct boss reference as requested
+            local boss = GetBoss()
+            
+            if boss then
+                -- Equip weapon if not equipped
+                local equipped = Character:FindFirstChildOfClass("Tool")
+                if not equipped or equipped.Name ~= Config.ToolName then
+                    EquipTool(Config.ToolName)
+                    task.wait(0.1) -- Wait for tool to equip
+                end
+                
+                -- Get boss position
+                local bossRoot = boss:FindFirstChild("HumanoidRootPart")
+                if bossRoot then
+                    -- Create hover position above boss
+                    local hoverPosition = Vector3.new(
+                        bossRoot.Position.X, 
+                        bossRoot.Position.Y + Config.HoverHeight, 
+                        bossRoot.Position.Z
+                    )
+                    
+                    -- Update UI with boss info
+                    OrionLib:MakeNotification({
+                        Name = "Target Found",
+                        Content = "Tweening to Captain Elephant",
+                        Image = "rbxassetid://4483345998",
+                        Time = 1
+                    })
+                    
+                    -- Tween to hover position
+                    TweenTo(hoverPosition, Config.TweenSpeed)
+                    
+                    -- Enable bring mob if configured
+                    if Config.BringMob then
+                        BringMob(true)
+                    end
+                end
+            else
+                OrionLib:MakeNotification({
+                    Name = "Boss Not Found",
+                    Content = "Waiting for Captain Elephant to spawn...",
+                    Image = "rbxassetid://4483345998",
+                    Time = 3
+                })
+                task.wait(3)
+            end
+        end
+    end)
+end
+
+-- Create tabs
+local FarmTab = Window:MakeTab({
+    Name = "Farming",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Farm tab elements
+FarmTab:AddToggle({
+    Name = "Auto Farm Captain Elephant",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoFarm = Value
+        if Value then
+            StartFarming()
+            OrionLib:MakeNotification({
+                Name = "Auto Farm",
+                Content = "Started farming Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            farming = false
+            OrionLib:MakeNotification({
+                Name = "Auto Farm",
+                Content = "Stopped farming",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end    
+})
+
+FarmTab:AddToggle({
+    Name = "Fast Attack",
+    Default = false,
+    Callback = function(Value)
+        Config.FastAttack = Value
+        EnableFastAttack()
+        OrionLib:MakeNotification({
+            Name = "Fast Attack",
+            Content = Value and "Enabled" or "Disabled",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end    
+})
+
+FarmTab:AddToggle({
+    Name = "Bring Mob",
+    Default = false,
+    Callback = function(Value)
+        Config.BringMob = Value
+        OrionLib:MakeNotification({
+            Name = "Bring Mob",
+            Content = Value and "Enabled" or "Disabled",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end    
+})
+
+-- Add a teleport directly to boss button
+FarmTab:AddButton({
+    Name = "Teleport to Boss",
+    Callback = function()
+        local boss = GetBoss()
+        if boss and boss:FindFirstChild("HumanoidRootPart") then
+            local position = boss.HumanoidRootPart.Position
+            local teleportPos = Vector3.new(
+                position.X,
+                position.Y + Config.HoverHeight,
+                position.Z
+            )
+            HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+            OrionLib:MakeNotification({
+                Name = "Teleported",
+                Content = "Teleported to Captain Elephant",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Boss Not Found",
+                Content = "Captain Elephant not found in the workspace",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Settings tab elements
+local ToolDropdown = SettingsTab:AddDropdown({
+    Name = "Select Weapon",
+    Default = "Combat",
+    Options = GetAvailableTools(),
+    Callback = function(Value)
+        Config.ToolName = Value
+        OrionLib:MakeNotification({
+            Name = "Weapon Selected",
+            Content = "Now using: " .. Value,
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end    
+})
+
+SettingsTab:AddButton({
+    Name = "Refresh Weapons List",
+    Callback = function()
+        ToolDropdown:Refresh(GetAvailableTools(), true)
+        OrionLib:MakeNotification({
+            Name = "Weapons List",
+            Content = "Refreshed available weapons",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end    
+})
+
+SettingsTab:AddSlider({
+    Name = "Hover Height",
+    Min = 0,
+    Max = 100,
+    Default = 30,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "studs",
+    Callback = function(Value)
+        Config.HoverHeight = Value
+    end    
+})
+
+SettingsTab:AddSlider({
+    Name = "Tween Speed",
+    Min = 50,
+    Max = 500,
+    Default = 300,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 10,
+    ValueName = "speed",
+    Callback = function(Value)
+        Config.TweenSpeed = Value
+    end    
+})
+
+-- Add boss status indicator
+local statusSection = SettingsTab:AddSection({
+    Name = "Boss Status"
+})
+
+local bossStatus = "Checking..."
+local statusLabel = SettingsTab:AddLabel("Boss Status: " .. bossStatus)
+
+-- Update boss status periodically
+task.spawn(function()
+    while task.wait(1) do
+        local boss = GetBoss()
+        if boss and boss:FindFirstChild("Humanoid") then
+            bossStatus = "Found - Health: " .. math.floor(boss.Humanoid.Health) .. "/" .. math.floor(boss.Humanoid.MaxHealth)
+        else
+            bossStatus = "Not Found"
+        end
+        statusLabel:Set("Boss Status: " .. bossStatus)
+    end
+end)
+
+-- Initialize
+OrionLib:MakeNotification({
+    Name = "Script Loaded",
+    Content = "Captain Elephant Auto Farm GUI is ready!",
+    Image = "rbxassetid://4483345998",
+    Time = 5
+})
+
+-- Set hidden property for bring mob functionality
+sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+
+-- Handle script termination
+OrionLib:Init()
+
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
+    if State == Enum.TeleportState.Started then
+        _G["L_12_34"] = false
+        Config.AutoFarm = false
+        Config.FastAttack = false
+        Config.BringMob = false
+        farming = false
+        OrionLib:Destroy()
+    end
+end)
