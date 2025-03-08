@@ -3,32 +3,6 @@ if game.PlaceId ~= 2753915549 then
     warn("Script này được tạo cho Blox Fruits!")
 end
 
--- Hàm chờ đến khi game load xong
-local function waitUntilGameLoaded()
-    -- Chờ đến khi game.Loaded trả về true
-    if not game:IsLoaded() then
-        game.Loaded:Wait()
-    end
-    
-    -- Chờ đến khi Player được tạo
-    while not game.Players.LocalPlayer do
-        wait(0.1)
-    end
-    
-    -- Chờ đến khi Character được tạo
-    while not game.Players.LocalPlayer.Character do
-        wait(0.1)
-    end
-    
-    -- Chờ đến khi game đủ ổn định
-    wait(1)
-    
-    return true
-end
-
--- Chờ đến khi game load xong trước khi tạo GUI
-waitUntilGameLoaded()
-
 -- Tạo ScreenGui để chứa các UI elements
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GameUtilityGui"
@@ -213,41 +187,3 @@ if game.Players.LocalPlayer then
 end
 
 game.Players.PlayerAdded:Connect(onPlayerAdded)
-
--- Hiển thị thông báo khi script được load xong
-local function showLoadNotification()
-    local notification = Instance.new("Frame")
-    notification.Name = "LoadNotification"
-    notification.Size = UDim2.new(0, 200, 0, 40)
-    notification.Position = UDim2.new(0.5, -100, 0.85, 0)
-    notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    notification.BackgroundTransparency = 0.3
-    notification.Parent = ScreenGui
-    
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 6)
-    UICorner.Parent = notification
-    
-    local notificationText = Instance.new("TextLabel")
-    notificationText.Name = "NotificationText"
-    notificationText.Size = UDim2.new(1, 0, 1, 0)
-    notificationText.BackgroundTransparency = 1
-    notificationText.Text = "Game Utility đã được tải xong!"
-    notificationText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    notificationText.Font = Enum.Font.SourceSansBold
-    notificationText.TextSize = 16
-    notificationText.Parent = notification
-    
-    -- Hiệu ứng biến mất
-    spawn(function()
-        wait(2)
-        for i = 0, 1, 0.1 do
-            notification.BackgroundTransparency = 0.3 + (i * 0.7)
-            notificationText.TextTransparency = i
-            wait(0.05)
-        end
-        notification:Destroy()
-    end)
-end
-
-showLoadNotification()
