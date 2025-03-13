@@ -1,7 +1,11 @@
 -- Xác nhận PlaceId
 if game.PlaceId ~= 2753915549 then
     warn("Script này được tạo cho Blox Fruits!")
+    return -- Exit the script if not in Blox Fruits
 end
+
+-- Đợi cho đến khi game load hoàn toàn
+repeat wait() until game:IsLoaded()
 
 -- Tạo ScreenGui để chứa các UI elements
 local ScreenGui = Instance.new("ScreenGui")
