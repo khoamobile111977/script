@@ -1,11 +1,22 @@
--- Xác nhận PlaceId
-if game.PlaceId ~= 2753915549 then
-    warn("Script này được tạo cho Blox Fruits!")
-    return -- Exit the script if not in Blox Fruits
+-- Xác nhận game là Blox Fruits thay vì chỉ kiểm tra Sea 1
+local validPlaceIds = {
+    2753915549, -- Sea 1
+    4442272183, -- Sea 2
+    7449423635  -- Sea 3
+}
+
+local isValidGame = false
+for _, id in pairs(validPlaceIds) do
+    if game.PlaceId == id then
+        isValidGame = true
+        break
+    end
 end
 
--- Đợi cho đến khi game load hoàn toàn
-repeat wait() until game:IsLoaded()
+if not isValidGame then
+    warn("Script này được tạo cho Blox Fruits!")
+    return
+end
 
 -- Tạo ScreenGui để chứa các UI elements
 local ScreenGui = Instance.new("ScreenGui")
@@ -37,7 +48,7 @@ ResetButton.Parent = MainFrame
 
 -- Tạo TextBox để nhập JobID
 local JobIDInput = Instance.new("TextBox")
-JobIDInput.Name = "JobIDInput"
+JobIDInput.Name = "JobIDInput" 
 JobIDInput.Size = UDim2.new(0, 75, 0, 25) -- Thu nhỏ input
 JobIDInput.Position = UDim2.new(0, 0, 0, 35)
 JobIDInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -150,7 +161,7 @@ JoinButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Xử lý sự kiện Less People
+-- Xử lý sự kiện Less People - sửa để hoạt động với tất cả các sea
 LessPeopleButton.MouseButton1Click:Connect(function()
     local TeleportService = game:GetService("TeleportService")
     local servers = {}
@@ -177,17 +188,31 @@ LessPeopleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Script sẽ chạy trong LocalScript
-local function onPlayerAdded(player)
-    if player == game.Players.LocalPlayer then
-        player.CharacterAdded:Connect(function()
-            ScreenGui.Enabled = true
-        end)
+-- Xử lý khi người chơi thay đổi sea (teleport)
+local function setupScript()
+    -- Thiết lập lại GUI sau khi teleport
+    if ScreenGui then
+        ScreenGui.Enabled = true
     end
 end
 
-if game.Players.LocalPlayer then
-    onPlayerAdded(game.Players.LocalPlayer)
+-- Thiết lập sự kiện teleport để script vẫn hoạt động sau khi chuyển sea
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
+    if State == Enum.TeleportState.Started then
+        -- Lưu một script vào queue để chạy sau khi teleport hoàn tất
+        syn = syn or {}
+        if syn.queue_on_teleport then
+            syn.queue_on_teleport(game:HttpGet("Đường dẫn đến script của bạn"))
+            -- Lưu ý: Thay "Đường dẫn đến script của bạn" bằng URL thực tế nơi bạn lưu trữ script này
+        end
+    end
+end)
+
+-- Đảm bảo script hoạt động khi người chơi đã tải game
+if game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait() then
+    setupScript()
 end
 
-game.Players.PlayerAdded:Connect(onPlayerAdded)
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    setupScript()
+end)
