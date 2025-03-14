@@ -4,6 +4,7 @@ local validPlaceIds = {
     4442272183, -- Sea 2
     7449423635  -- Sea 3
 }
+repeat wait() until game:IsLoaded()
 
 local isValidGame = false
 for _, id in pairs(validPlaceIds) do
