@@ -28,30 +28,47 @@ ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 -- Tạo Frame chính để chứa tất cả các elements
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 140, 0, 130) -- Thu nhỏ frame
-MainFrame.Position = UDim2.new(0.98, -140, 0.05, 0)
+MainFrame.Size = UDim2.new(0, 180, 0, 130) -- Slightly wider to accommodate new buttons
+MainFrame.Position = UDim2.new(0.98, -180, 0.05, 0)
 MainFrame.BackgroundTransparency = 1
 MainFrame.Parent = ScreenGui
+
+-- Layout cho các nút
+local function createHorizontalLayout()
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+    UIListLayout.Padding = UDim.new(0, 5)
+    UIListLayout.Parent = MainFrame
+end
+
+createHorizontalLayout()
+
+-- Tạo Frame cho hàng đầu tiên (Reset và Job ID)
+local FirstRowFrame = Instance.new("Frame")
+FirstRowFrame.Name = "FirstRowFrame"
+FirstRowFrame.Size = UDim2.new(1, 0, 0, 25)
+FirstRowFrame.BackgroundTransparency = 1
+FirstRowFrame.LayoutOrder = 1
+FirstRowFrame.Parent = MainFrame
 
 -- Tạo TextButton để làm nút Reset
 local ResetButton = Instance.new("TextButton")
 ResetButton.Name = "ResetButton"
-ResetButton.Size = UDim2.new(0, 60, 0, 25)
-ResetButton.Position = UDim2.new(1, -60, 0, 0)
+ResetButton.Size = UDim2.new(0, 50, 0, 25)
 ResetButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 ResetButton.Text = "Reset"
 ResetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ResetButton.Font = Enum.Font.SourceSansBold
-ResetButton.TextSize = 14
+ResetButton.TextSize = 12
 ResetButton.BorderSizePixel = 0
 ResetButton.AutoButtonColor = true
-ResetButton.Parent = MainFrame
+ResetButton.Parent = FirstRowFrame
 
 -- Tạo TextBox để nhập JobID
 local JobIDInput = Instance.new("TextBox")
 JobIDInput.Name = "JobIDInput" 
-JobIDInput.Size = UDim2.new(0, 75, 0, 25) -- Thu nhỏ input
-JobIDInput.Position = UDim2.new(0, 0, 0, 35)
+JobIDInput.Size = UDim2.new(0, 80, 0, 25)
 JobIDInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 JobIDInput.PlaceholderText = "Job ID..."
 JobIDInput.Text = ""
@@ -59,49 +76,96 @@ JobIDInput.TextColor3 = Color3.fromRGB(0, 0, 0)
 JobIDInput.Font = Enum.Font.SourceSans
 JobIDInput.TextSize = 12
 JobIDInput.ClearTextOnFocus = false
-JobIDInput.Parent = MainFrame
+JobIDInput.Parent = FirstRowFrame
 
--- Tạo nút Join Server
+-- Tạo Frame cho hàng thứ hai (các nút chức năng)
+local SecondRowFrame = Instance.new("Frame")
+SecondRowFrame.Name = "SecondRowFrame"
+SecondRowFrame.Size = UDim2.new(1, 0, 0, 25)
+SecondRowFrame.BackgroundTransparency = 1
+SecondRowFrame.LayoutOrder = 2
+SecondRowFrame.Parent = MainFrame
+
+-- Nút Join Server
 local JoinButton = Instance.new("TextButton")
 JoinButton.Name = "JoinButton"
-JoinButton.Size = UDim2.new(0, 60, 0, 25)
-JoinButton.Position = UDim2.new(1, -60, 0, 35)
+JoinButton.Size = UDim2.new(0, 50, 0, 25)
 JoinButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 JoinButton.Text = "Join"
 JoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 JoinButton.Font = Enum.Font.SourceSansBold
-JoinButton.TextSize = 14
+JoinButton.TextSize = 12
 JoinButton.BorderSizePixel = 0
 JoinButton.AutoButtonColor = true
-JoinButton.Parent = MainFrame
+JoinButton.Parent = SecondRowFrame
 
--- Tạo nút Copy Job ID
+-- Nút Clear Job ID
+local ClearButton = Instance.new("TextButton")
+ClearButton.Name = "ClearButton"
+ClearButton.Size = UDim2.new(0, 50, 0, 25)
+ClearButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+ClearButton.Text = "Clear"
+ClearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearButton.Font = Enum.Font.SourceSansBold
+ClearButton.TextSize = 12
+ClearButton.BorderSizePixel = 0
+ClearButton.AutoButtonColor = true
+ClearButton.Parent = SecondRowFrame
+
+-- Tạo Frame cho hàng thứ ba (các nút khác)
+local ThirdRowFrame = Instance.new("Frame")
+ThirdRowFrame.Name = "ThirdRowFrame"
+ThirdRowFrame.Size = UDim2.new(1, 0, 0, 25)
+ThirdRowFrame.BackgroundTransparency = 1
+ThirdRowFrame.LayoutOrder = 3
+ThirdRowFrame.Parent = MainFrame
+
+-- Nút Copy Job ID
 local CopyButton = Instance.new("TextButton")
 CopyButton.Name = "CopyButton"
-CopyButton.Size = UDim2.new(1, 0, 0, 25)
-CopyButton.Position = UDim2.new(0, 0, 0, 70)
+CopyButton.Size = UDim2.new(0, 60, 0, 25)
 CopyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-CopyButton.Text = "Copy Server ID"
+CopyButton.Text = "Copy ID"
 CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 CopyButton.Font = Enum.Font.SourceSansBold
-CopyButton.TextSize = 14
+CopyButton.TextSize = 12
 CopyButton.BorderSizePixel = 0
 CopyButton.AutoButtonColor = true
-CopyButton.Parent = MainFrame
+CopyButton.Parent = ThirdRowFrame
 
--- Tạo nút Less People
+-- Nút Paste Job ID
+local PasteButton = Instance.new("TextButton")
+PasteButton.Name = "PasteButton"
+PasteButton.Size = UDim2.new(0, 60, 0, 25)
+PasteButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+PasteButton.Text = "Paste"
+PasteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+PasteButton.Font = Enum.Font.SourceSansBold
+PasteButton.TextSize = 12
+PasteButton.BorderSizePixel = 0
+PasteButton.AutoButtonColor = true
+PasteButton.Parent = ThirdRowFrame
+
+-- Frame cuối cùng cho nút Less People
+local FourthRowFrame = Instance.new("Frame")
+FourthRowFrame.Name = "FourthRowFrame"
+FourthRowFrame.Size = UDim2.new(1, 0, 0, 25)
+FourthRowFrame.BackgroundTransparency = 1
+FourthRowFrame.LayoutOrder = 4
+FourthRowFrame.Parent = MainFrame
+
+-- Nút Less People
 local LessPeopleButton = Instance.new("TextButton")
 LessPeopleButton.Name = "LessPeopleButton"
 LessPeopleButton.Size = UDim2.new(1, 0, 0, 25)
-LessPeopleButton.Position = UDim2.new(0, 0, 0, 105)
 LessPeopleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
 LessPeopleButton.Text = "Join Less People"
 LessPeopleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 LessPeopleButton.Font = Enum.Font.SourceSansBold
-LessPeopleButton.TextSize = 14
+LessPeopleButton.TextSize = 12
 LessPeopleButton.BorderSizePixel = 0
 LessPeopleButton.AutoButtonColor = true
-LessPeopleButton.Parent = MainFrame
+LessPeopleButton.Parent = FourthRowFrame
 
 -- Thêm UICorner cho tất cả các elements
 local function addCorners(instance)
@@ -113,8 +177,10 @@ end
 addCorners(ResetButton)
 addCorners(JobIDInput)
 addCorners(JoinButton)
-addCorners(LessPeopleButton)
+addCorners(ClearButton)
 addCorners(CopyButton)
+addCorners(PasteButton)
+addCorners(LessPeopleButton)
 
 -- Thêm hiệu ứng hover cho các buttons
 local function addHoverEffect(button, originalColor)
@@ -129,8 +195,10 @@ end
 
 addHoverEffect(ResetButton, Color3.fromRGB(255, 0, 0))
 addHoverEffect(JoinButton, Color3.fromRGB(0, 170, 255))
-addHoverEffect(LessPeopleButton, Color3.fromRGB(0, 255, 127))
+addHoverEffect(ClearButton, Color3.fromRGB(255, 165, 0))
 addHoverEffect(CopyButton, Color3.fromRGB(100, 100, 255))
+addHoverEffect(PasteButton, Color3.fromRGB(0, 200, 100))
+addHoverEffect(LessPeopleButton, Color3.fromRGB(0, 255, 127))
 
 -- Xử lý sự kiện Reset Character
 ResetButton.MouseButton1Click:Connect(function()
@@ -147,7 +215,23 @@ CopyButton.MouseButton1Click:Connect(function()
     local originalText = CopyButton.Text
     CopyButton.Text = "Copied!"
     wait(1)
-    CopyButton.Text = originalText
+    CopyButton.Text = "Copy ID"
+end)
+
+-- Xử lý sự kiện Paste Job ID
+PasteButton.MouseButton1Click:Connect(function()
+    local success, result = pcall(function()
+        return getclipboard()
+    end)
+    
+    if success and result then
+        JobIDInput.Text = result
+    end
+end)
+
+-- Xử lý sự kiện Clear Job ID
+ClearButton.MouseButton1Click:Connect(function()
+    JobIDInput.Text = ""
 end)
 
 -- Xử lý sự kiện Join by JobID
