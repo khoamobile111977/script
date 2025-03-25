@@ -163,7 +163,7 @@ CopyButton.MouseButton1Click:Connect(function()
     local originalText = CopyButton.Text
     CopyButton.Text = "Copied!"
     wait(1)
-    CopyButton.Text = originalText
+    CopyButton.Text = "Copy"
 end)
 
 -- Xử lý sự kiện Clear Job ID
@@ -181,13 +181,26 @@ PasteButton.MouseButton1Click:Connect(function()
     if success and jobId and jobId ~= "" then
         JobIDInput.Text = jobId
         
-        -- Thử teleport ngay lập tức
+        -- Teleport ngay lập tức sau khi dán
         local TeleportService = game:GetService("TeleportService")
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId)
+        pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId)
+        end)
     else
         JobIDInput.PlaceholderText = "Invalid ID!"
         wait(2)
         JobIDInput.PlaceholderText = "Job ID..."
+    end
+end)
+
+-- Thêm sự kiện nhập để tự động teleport
+JobIDInput.FocusLost:Connect(function(enterPressed)
+    local jobId = JobIDInput.Text
+    if jobId and jobId ~= "" then
+        local TeleportService = game:GetService("TeleportService")
+        pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId)
+        end)
     end
 end)
 
