@@ -80,13 +80,30 @@ if _G["L_12_34"] then
     end)
 end
 
--- Check if enemies exist function
-function CheckEnemies(name)
-    for i, v in pairs(workspace.Enemies:GetChildren()) do
-        if v.Name:find(name) and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+-- Updated boss checking function that also checks ReplicatedStorage
+function CheckNameBoss(bossName)
+    -- Check in ReplicatedStorage first
+    for i, v in next, game:GetService("ReplicatedStorage"):GetChildren() do
+        if v:IsA("Model") and (
+            (typeof(bossName) == "table" and table.find(bossName, v.Name)) or 
+            v.Name == bossName or 
+            v.Name:find(bossName)
+        ) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
             return v
         end
     end
+    
+    -- Then check in Workspace.Enemies
+    for i, v in next, game.Workspace.Enemies:GetChildren() do
+        if v:IsA("Model") and (
+            (typeof(bossName) == "table" and table.find(bossName, v.Name)) or 
+            v.Name == bossName or 
+            v.Name:find(bossName)
+        ) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v
+        end
+    end
+    
     return false
 end
 
@@ -99,18 +116,12 @@ function CheckBossSpawn(spawnName)
     return false
 end
 
--- Check if a specific boss is alive
-function IsBossAlive(bossName)
-    local boss = CheckEnemies(bossName)
-    return boss ~= false
-end
-
--- Find all active bosses function
+-- Find all active bosses function - now uses CheckNameBoss
 function FindActiveBosses()
     local activeBosses = {}
     
     for _, bossInfo in ipairs(BossList) do
-        local boss = CheckEnemies(bossInfo.Name)
+        local boss = CheckNameBoss(bossInfo.SpawnName)
         if boss then
             table.insert(activeBosses, {
                 Boss = boss,
@@ -176,11 +187,11 @@ function Tween(Pos)
         -- Start a parallel thread to check for any boss while tweening
         local bossCheckConnection
         bossCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            -- Check if any boss has appeared in the Enemies folder
+            -- Check if any boss has appeared using our new boss checking function
             local activeBosses = FindActiveBosses()
             if #activeBosses > 0 and IsTweening then
                 local highestPriorityBoss = activeBosses[1] -- First one has highest priority
-                print(highestPriorityBoss.Info.Name .. " detected in Enemies folder! Breaking tween...")
+                print(highestPriorityBoss.Info.Name .. " detected! Breaking tween...")
                 IsTweening = false
                 Tweeb:Cancel()
                 bossCheckConnection:Disconnect()
@@ -267,31 +278,14 @@ function Bring(mobname, cfr, notcf, dis)
     end
 end
 
--- Kill monster function
-function KillMonster(name, bringmobvalue, value)
-    if CheckEnemies(name) then
-        local v = CheckEnemies(name)
-        task.spawn(function()
-            if bringmobvalue == true then
-                Bring(v.Name, v.HumanoidRootPart.CFrame, (v.HumanoidRootPart.Position - v.HumanoidRootPart.Position), 350)
-            end
-        end)
-        if DetectingPart(v) and v.Humanoid.Health > 0 then
-            repeat task.wait()
-                AutoHaki()
-                EquipTool(SelectWeapon)
-                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0, 50, 0)) -- Fly above the monster
-            until value or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0
-        end
-    end
-end
-
 -- Direct boss killing function when boss is already found
 function KillBoss(boss)
     if boss and DetectingPart(boss) and boss.Humanoid.Health > 0 then
         print("Starting to attack " .. boss.Name)
         task.spawn(function()
-            Bring(boss.Name, boss.HumanoidRootPart.CFrame, (boss.HumanoidRootPart.Position - boss.HumanoidRootPart.Position), 350)
+            if boss.Parent == workspace.Enemies then
+                Bring(boss.Name, boss.HumanoidRootPart.CFrame, (boss.HumanoidRootPart.Position - boss.HumanoidRootPart.Position), 350)
+            end
         end)
         
         repeat task.wait()
@@ -310,22 +304,47 @@ end
 task.spawn(function()
     while task.wait(0.1) do
         if not IsBossFarmActive then
-            -- First priority: Check if any boss already exists in the Enemies folder
+            -- Check if any boss exists using our new boss checking function
             local activeBosses = FindActiveBosses()
             
             if #activeBosses > 0 then
-                -- Bosses are already present in the Enemies folder
+                -- Boss found (either in ReplicatedStorage or Enemies)
                 local targetBoss = activeBosses[1] -- Get highest priority boss
-                print(targetBoss.Info.Name .. " found directly in Enemies folder!")
+                print(targetBoss.Info.Name .. " found!")
                 IsBossFarmActive = true
                 
-                -- Attack boss directly
-                KillBoss(targetBoss.Boss)
+                -- If boss is in ReplicatedStorage, we need to tween to its spawn location first
+                if targetBoss.Boss.Parent == game:GetService("ReplicatedStorage") then
+                    print("Boss is in ReplicatedStorage, going to spawn location...")
+                    
+                    -- Find spawn location
+                    local spawn = CheckBossSpawn(targetBoss.Info.SpawnName)
+                    if spawn then
+                        -- Tween to spawn location
+                        Tween(spawn.CFrame)
+                        
+                        -- Wait a bit for boss to appear
+                        wait(3)
+                        
+                        -- Check if boss is now in Enemies folder
+                        local bossInWorld = CheckNameBoss(targetBoss.Info.SpawnName)
+                        if bossInWorld and bossInWorld.Parent == workspace.Enemies then
+                            KillBoss(bossInWorld)
+                        else
+                            print("Boss didn't appear in Enemies folder after reaching spawn")
+                        end
+                    else
+                        print("Couldn't find spawn location for " .. targetBoss.Info.Name)
+                    end
+                else
+                    -- Boss is already in Enemies folder, attack directly
+                    KillBoss(targetBoss.Boss)
+                end
                 
                 -- Reset state when boss dies
                 IsBossFarmActive = false
             else
-                -- No bosses found in Enemies, check spawn locations
+                -- No bosses found, check spawn locations
                 local availableSpawns = FindAvailableBossSpawns()
                 
                 if #availableSpawns > 0 then
@@ -399,5 +418,6 @@ print("Boss Priority:")
 for _, bossInfo in ipairs(BossList) do
     print("- Priority " .. bossInfo.Priority .. ": " .. bossInfo.Name)
 end
+print("Using enhanced boss detection - checking both ReplicatedStorage and Enemies")
 print("Dual-path monitoring active - will break tween if boss appears")
 print("Waiting for bosses...")
