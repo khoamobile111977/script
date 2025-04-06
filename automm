@@ -1,31 +1,4 @@
-function setTeam(teamName)
-    local args = {
-        [1] = "SetTeam",
-        [2] = teamName
-    }
-    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
-end
 
-_G.Select_Marines = true
-
-spawn(function()
-    while wait() do
-        if _G.Select_Pirates then
-            setTeam("Pirates")
-            _G.Select_Pirates = false  
-            break
-        end
-    end
-end)
-spawn(function()
-    while wait() do
-        if _G.Select_Marines then
-            setTeam("Marines")
-            _G.Select_Marines = false  
-            break
-        end
-    end
-end)
 -- Enable fast attack
 _G["L_12_34"] = true
 
