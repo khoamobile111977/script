@@ -1,4 +1,3 @@
-Nguyễn Lâm
 function setTeam(teamName)
     local args = {
         [1] = "SetTeam",
