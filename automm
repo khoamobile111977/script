@@ -1,0 +1,403 @@
+-- Enable fast attack
+_G["L_12_34"] = true
+
+-- Boss farm settings
+getgenv().TweenSpeed = 325 -- Speed for tweening to locations
+
+-- Boss information
+local BossList = {
+    {
+        Name = "rip_indra True Form",
+        SpawnName = "rip_indra True Form [Lv. 5000] [Raid Boss]",
+        Priority = 1 
+    },
+    {
+        Name = "Dough King",
+        SpawnName = "Dough King [Lv. 2300] [Raid Boss]",
+        Priority = 2 
+    }
+}
+
+ChooseWeapon = "Melee" -- Can be "Melee" or "Sword"
+SelectWeapon = "" -- Will be auto-selected based on ChooseWeapon
+
+-- Keep track of boss state
+local IsBossFarmActive = false
+local IsTweening = false
+local CurrentBossTarget = nil
+
+-- Import functions from the provided script
+if _G["L_12_34"] then
+    local L_1A, L_2B, L_3C = game:GetService("ReplicatedStorage"), game:GetService("Players"), game.Players.LocalPlayer
+    local L_4D = {L_5E = true, L_6F = 0.001, L_7G = 200, L_8H = 200}
+    local L_9I = L_1A:WaitForChild("Modules"):WaitForChild("Net")
+
+    local function L_10J(L_11K)
+        return L_11K and L_11K:FindFirstChild("Humanoid") and L_11K.Humanoid.Health > 0
+    end
+
+    local function L_12L()
+        local L_13M = {}
+        for _, L_14N in ipairs(workspace.Enemies:GetChildren()) do
+            if L_10J(L_14N) then
+                local L_15O = L_14N:FindFirstChild("Head")
+                if L_15O and L_3C:DistanceFromCharacter(L_15O.Position) <= L_4D.L_7G then
+                    table.insert(L_13M, {["Enemy"] = L_14N, ["Target"] = L_15O})
+                end
+            end
+        end
+        return L_13M
+    end
+
+    local function L_16P()
+        local L_17Q, L_18R = 0, 0
+        return function()
+            local L_19S = tick()
+            if L_19S - L_17Q >= 1 then
+                L_17Q, L_18R = L_19S, 0
+            end
+            L_18R = L_18R + 1
+            if L_18R <= L_4D.L_8H then
+                return true
+            else
+                task.wait(0.005)
+                return false
+            end
+        end
+    end
+
+    -- Fast attack function
+    task.spawn(function()
+        while _G["L_12_34"] do
+            if L_4D.L_5E and L_16P() then
+                for _, L_20T in ipairs(L_12L()) do
+                    L_9I["RE/RegisterAttack"]:FireServer(0)
+                    L_9I["RE/RegisterHit"]:FireServer(L_20T.Target, {{L_20T.Enemy, L_20T.Target}})
+                end
+            end
+            task.wait(L_4D.L_6F)
+        end
+    end)
+end
+
+-- Check if enemies exist function
+function CheckEnemies(name)
+    for i, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name:find(name) and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+            return v
+        end
+    end
+    return false
+end
+
+-- Check if boss spawn exists
+function CheckBossSpawn(spawnName)
+    local bossSpawnPath = workspace._WorldOrigin.EnemySpawns:FindFirstChild(spawnName)
+    if bossSpawnPath then
+        return bossSpawnPath
+    end
+    return false
+end
+
+-- Check if a specific boss is alive
+function IsBossAlive(bossName)
+    local boss = CheckEnemies(bossName)
+    return boss ~= false
+end
+
+-- Find all active bosses function
+function FindActiveBosses()
+    local activeBosses = {}
+    
+    for _, bossInfo in ipairs(BossList) do
+        local boss = CheckEnemies(bossInfo.Name)
+        if boss then
+            table.insert(activeBosses, {
+                Boss = boss,
+                Info = bossInfo
+            })
+        end
+    end
+    
+    -- Sort by priority (lower number = higher priority)
+    table.sort(activeBosses, function(a, b)
+        return a.Info.Priority < b.Info.Priority
+    end)
+    
+    return activeBosses
+end
+
+-- Find available boss spawns
+function FindAvailableBossSpawns()
+    local availableSpawns = {}
+    
+    for _, bossInfo in ipairs(BossList) do
+        local spawn = CheckBossSpawn(bossInfo.SpawnName)
+        if spawn then
+            table.insert(availableSpawns, {
+                Spawn = spawn,
+                Info = bossInfo
+            })
+        end
+    end
+    
+    -- Sort by priority (lower number = higher priority)
+    table.sort(availableSpawns, function(a, b)
+        return a.Info.Priority < b.Info.Priority
+    end)
+    
+    return availableSpawns
+end
+
+-- Tween function with concurrent boss checking
+function Tween(Pos)
+    if game.Players.LocalPlayer.Character.Humanoid.Health > 0 and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        Distance = (Pos.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+        if game.Players.LocalPlayer.Character.Humanoid.Sit == true then
+            game.Players.LocalPlayer.Character.Humanoid.Sit = false
+        end
+        
+        -- Create tween
+        local Tweeb
+        pcall(
+            function()
+                Tweeb = game:GetService("TweenService"):Create(
+                    game.Players.LocalPlayer.Character.HumanoidRootPart,
+                    TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
+                    {CFrame = Pos}
+                )
+            end
+        )
+        
+        -- Start tween
+        IsTweening = true
+        Tweeb:Play()
+        
+        -- Start a parallel thread to check for any boss while tweening
+        local bossCheckConnection
+        bossCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            -- Check if any boss has appeared in the Enemies folder
+            local activeBosses = FindActiveBosses()
+            if #activeBosses > 0 and IsTweening then
+                local highestPriorityBoss = activeBosses[1] -- First one has highest priority
+                print(highestPriorityBoss.Info.Name .. " detected in Enemies folder! Breaking tween...")
+                IsTweening = false
+                Tweeb:Cancel()
+                bossCheckConnection:Disconnect()
+                
+                -- Immediately start attacking the boss
+                KillBoss(highestPriorityBoss.Boss)
+            end
+        end)
+        
+        -- Wait for tween to complete or be cancelled
+        Tweeb.Completed:Connect(function()
+            IsTweening = false
+            if bossCheckConnection then
+                bossCheckConnection:Disconnect()
+            end
+        end)
+        
+        -- Teleport if close enough
+        if Distance <= 370 then
+            Tweeb:Cancel()
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Pos
+            IsTweening = false
+            if bossCheckConnection then 
+                bossCheckConnection:Disconnect()
+            end
+        end
+    end
+end
+
+-- Equip tool function
+function EquipTool(ToolSe)
+    if game.Players.LocalPlayer.Backpack:FindFirstChild(ToolSe) then
+        local tool = game.Players.LocalPlayer.Backpack:FindFirstChild(ToolSe)
+        wait(0.5)
+        game.Players.LocalPlayer.Character.Humanoid:EquipTool(tool)
+    end
+end
+
+-- Auto select weapon based on type
+task.spawn(function()
+    while wait() do
+        pcall(function()
+            if ChooseWeapon == "Melee" then
+                for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+                    if v.ToolTip == "Melee" then
+                        if game.Players.LocalPlayer.Backpack:FindFirstChild(tostring(v.Name)) then
+                            SelectWeapon = v.Name
+                        end
+                    end
+                end
+            elseif ChooseWeapon == "Sword" then
+                for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+                    if v.ToolTip == "Sword" then
+                        if game.Players.LocalPlayer.Backpack:FindFirstChild(tostring(v.Name)) then
+                            SelectWeapon = v.Name
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Auto Haki function
+function AutoHaki()
+    if not game:GetService("Players").LocalPlayer.Character:FindFirstChild("HasBuso") then
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+    end
+end
+
+-- Detect if part exists
+function DetectingPart(enemy)
+    return enemy and enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart")
+end
+
+-- Bring mobs function
+function Bring(mobname, cfr, notcf, dis)
+    for i, v in pairs(workspace.Enemies:GetChildren()) do
+        if v.Name == mobname and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+            if (v.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= dis then
+                v.HumanoidRootPart.CFrame = cfr
+            end
+        end
+    end
+end
+
+-- Kill monster function
+function KillMonster(name, bringmobvalue, value)
+    if CheckEnemies(name) then
+        local v = CheckEnemies(name)
+        task.spawn(function()
+            if bringmobvalue == true then
+                Bring(v.Name, v.HumanoidRootPart.CFrame, (v.HumanoidRootPart.Position - v.HumanoidRootPart.Position), 350)
+            end
+        end)
+        if DetectingPart(v) and v.Humanoid.Health > 0 then
+            repeat task.wait()
+                AutoHaki()
+                EquipTool(SelectWeapon)
+                Tween(v.HumanoidRootPart.CFrame * CFrame.new(0, 50, 0)) -- Fly above the monster
+            until value or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0
+        end
+    end
+end
+
+-- Direct boss killing function when boss is already found
+function KillBoss(boss)
+    if boss and DetectingPart(boss) and boss.Humanoid.Health > 0 then
+        print("Starting to attack " .. boss.Name)
+        task.spawn(function()
+            Bring(boss.Name, boss.HumanoidRootPart.CFrame, (boss.HumanoidRootPart.Position - boss.HumanoidRootPart.Position), 350)
+        end)
+        
+        repeat task.wait()
+            AutoHaki()
+            EquipTool(SelectWeapon)
+            if DetectingPart(boss) then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 50, 0)
+            end
+        until not boss:FindFirstChild("Humanoid") or boss.Humanoid.Health <= 0 or not IsBossFarmActive
+        
+        print(boss.Name .. " defeated or disappeared!")
+    end
+end
+
+-- Main boss farming loop with priority handling
+task.spawn(function()
+    while task.wait(0.1) do
+        if not IsBossFarmActive then
+            -- First priority: Check if any boss already exists in the Enemies folder
+            local activeBosses = FindActiveBosses()
+            
+            if #activeBosses > 0 then
+                -- Bosses are already present in the Enemies folder
+                local targetBoss = activeBosses[1] -- Get highest priority boss
+                print(targetBoss.Info.Name .. " found directly in Enemies folder!")
+                IsBossFarmActive = true
+                
+                -- Attack boss directly
+                KillBoss(targetBoss.Boss)
+                
+                -- Reset state when boss dies
+                IsBossFarmActive = false
+            else
+                -- No bosses found in Enemies, check spawn locations
+                local availableSpawns = FindAvailableBossSpawns()
+                
+                if #availableSpawns > 0 then
+                    local targetSpawn = availableSpawns[1] -- Get highest priority spawn
+                    print(targetSpawn.Info.Name .. " spawn found! Tweening to location...")
+                    wait(5)
+                    IsBossFarmActive = true
+                    
+                    -- Tween to the boss spawn location (with continuous checking)
+                    Tween(targetSpawn.Spawn.CFrame)
+                    
+                    -- After reaching spawn location (if no boss was found during tween),
+                    -- wait and check for boss again
+                    if IsBossFarmActive and not IsTweening then
+                        -- Check for all bosses after reaching spawn
+                        local bossesAfterTween = FindActiveBosses()
+                        
+                        if #bossesAfterTween > 0 then
+                            -- Boss found after tween, kill highest priority one
+                            KillBoss(bossesAfterTween[1].Boss)
+                        else
+                            -- No boss found, wait at spawn location
+                            print("At spawn location but no boss found. Waiting...")
+                            local waitTimer = 0
+                            
+                            while waitTimer < 30 and #FindActiveBosses() == 0 do
+                                wait(1)
+                                waitTimer = waitTimer + 1
+                            end
+                            
+                            -- Check if any boss appeared while waiting
+                            local newBosses = FindActiveBosses()
+                            if #newBosses > 0 then
+                                KillBoss(newBosses[1].Boss)
+                            end
+                        end
+                    end
+                    
+                    -- Reset state
+                    IsBossFarmActive = false
+                else
+                    -- No boss spawns found
+                    print("No boss spawns found. Waiting...")
+                    wait(3)
+                end
+            end
+        end
+    end
+end)
+
+-- Setup a separate loop to continuously monitor for boss appearance
+task.spawn(function()
+    while wait(0.5) do
+        if IsTweening then
+            -- Check if any boss appeared while we're tweening to spawn
+            local activeBosses = FindActiveBosses()
+            
+            if #activeBosses > 0 then
+                print("Boss appeared during search! Redirecting...")
+                -- The tween function will handle redirecting to the boss
+            end
+        end
+    end
+end)
+
+-- Notification when script starts
+print("Enhanced Multi-Boss Auto Farm Script Started")
+print("Fast Attack: Enabled")
+print("Weapon Type: " .. ChooseWeapon)
+print("Boss Priority:")
+for _, bossInfo in ipairs(BossList) do
+    print("- Priority " .. bossInfo.Priority .. ": " .. bossInfo.Name)
+end
+print("Dual-path monitoring active - will break tween if boss appears")
+print("Waiting for bosses...")
