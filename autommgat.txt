@@ -1,1 +1,281 @@
+-- Auto PullerVer Script
+-- This script automatically activates the puller server functionality without UI interaction
 
+-- Chờ cho đến khi game load xong
+repeat task.wait() until game:IsLoaded()
+
+-- Import thư viện từ API
+local m = loadstring(http_request({
+    ["Url"] = "https://raw.githubusercontent.com/Iamkhnah/projectluacanmayidollop8a/refs/heads/main/pkhanh.lua",
+    ["Method"] = "GET",
+    ["Headers"] = {["user-agent"] = "Coded by pkhanh"}
+}).Body)()
+
+-- Cài đặt và biến toàn cục
+getgenv().TweenSpeed = 325
+_G.AutoPullLever = true -- Automatically set to true to start without UI
+
+-- Hàm kiểm tra item trong kho đồ
+function CheckItemInventory(itemName)
+    for _, v in pairs(game.ReplicatedStorage.Remotes["CommF_"]:InvokeServer("getInventory")) do
+        if v.Name == itemName then
+            return true
+        end
+    end
+    return false
+end
+
+-- Hàm di chuyển đến vị trí
+function Tween(Pos)
+    local localPlayer = game.Players.LocalPlayer
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") or 
+       not localPlayer.Character:FindFirstChild("Humanoid") or 
+       localPlayer.Character.Humanoid.Health <= 0 then
+        print("Nhân vật đã chết, đang chờ hồi sinh...")
+        wait(3) -- Simple respawn wait
+        return
+    end
+    
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and 
+       localPlayer.Character:FindFirstChild("Humanoid") and 
+       localPlayer.Character.Humanoid.Health > 0 then
+        
+        local Distance = (Pos.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
+        
+        if localPlayer.Character.Humanoid.Sit == true then
+            localPlayer.Character.Humanoid.Sit = false
+        end
+        
+        local Tweeb
+        pcall(function()
+            Tweeb = game:GetService("TweenService"):Create(
+                localPlayer.Character.HumanoidRootPart,
+                TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
+                {CFrame = Pos}
+            )
+        end)
+        
+        Tweeb:Play()
+        task.wait(Distance / getgenv().TweenSpeed)
+    end
+end
+
+-- Lấy Blue Gear
+function getBlueGear()
+    for _, v in pairs(workspace.Map:GetDescendants()) do
+        if v.Name == "Part" and v:IsA("Part") and v.Color == Color3.fromRGB(0, 29, 255) and v.CFrame.Y < 1000 then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Lấy vị trí cao nhất
+function getHighestPoint()
+    for _, v in pairs(workspace.Map:GetDescendants()) do
+        if v.Name == "Part" and v:IsA("Part") and v.Size.X == 12 and v.Size.Z == 12 and v.Color == Color3.fromRGB(101, 68, 49) then
+            return v
+        end
+    end
+    return nil
+end
+
+-- Kiểm tra thời gian trong game
+function GameTimeCheck()
+    local GameTime = game.Lighting.ClockTime
+    if GameTime >= 5 and GameTime < 17 then
+        return "Day"
+    else
+        return "Night"
+    end
+end
+
+-- Hàm lấy Blue Gear
+function CollectBlueGear()
+    local plr = game.Players.LocalPlayer
+    local BlueGear = getBlueGear()
+    if BlueGear and not BlueGear.CanCollide and BlueGear.Transparency ~= 1 then
+        Tween(BlueGear.CFrame)
+    elseif BlueGear and BlueGear.Transparency == 1 then
+        local highestPoint = getHighestPoint()
+        if highestPoint and (highestPoint.CFrame*CFrame.new(0, 211.88, 0).Position-plr.Character.HumanoidRootPart.Position).Magnitude > 10 then 
+            Tween(highestPoint.CFrame*CFrame.new(0, 211.88, 0))
+        else
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, game:GetService("Lighting"):GetMoonDirection() + workspace.CurrentCamera.CFrame.Position)
+            task.wait(.1)
+            game:service("VirtualInputManager"):SendKeyEvent(true, "T", false, game)
+            task.wait()
+            game:service("VirtualInputManager"):SendKeyEvent(false, "T", false, game)
+            task.wait(1.5)
+        end
+    end
+end
+
+-- Hàm pull lever
+function PullLever()
+    local plr = game.Players.LocalPlayer
+    local Doorsau = CFrame.new(28576.4688, 14935.9512, 75.469101, -1, -4.22219593e-08, 1.13133396e-08, 0, -0.258819044, -0.965925813, 4.37113883e-08, -0.965925813, 0.258819044)
+    local Door2 = 0.2
+    
+    if not game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer("CheckTempleDoor") then 
+        -- Kiểm tra xem có Mirage Island trong server hay không
+        if not game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then
+            print("Pull Lever Status: Không tìm thấy Mirage Island, đang Hop...")
+            -- Sử dụng hàm HopToMirageServer để tìm và nhảy vào server có Mirage
+            if HopToMirageServer() == false then
+                -- Nếu không tìm thấy server hoặc có lỗi, tạm dừng một lúc và thử lại sau
+                print("Pull Lever Status: Đợi 3 giây trước khi thử lại...")
+                task.wait(3)
+                return
+            end
+        end
+        
+        -- Kiểm tra thời gian trong game 
+        if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GameTimeCheck() == "Night" then
+            local v213 = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Check")
+            if v213 == 1 then
+                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Begin")
+            elseif v213 == 2 then
+                Tween(CFrame.new(2956.78, 2281.85, -7217.63))
+                if (CFrame.new(2956.78, 2281.85, -7217.63).Position-plr.Character.HumanoidRootPart.Position).Magnitude < 8 then 
+                    local args = {
+                        [1] = "RaceV4Progress",
+                        [2] = "Teleport"
+                    }
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+                end
+            elseif v213 == 3 then
+                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Continue")
+            else
+                CollectBlueGear()
+            end
+        elseif game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GameTimeCheck() ~= "Night" then 
+            print("Pull Lever Status: Đợi đến đêm...")
+            task.wait(5)
+            return
+        end
+    
+        -- Kiểm tra vị trí cần gạt và thực hiện kéo cần
+        if game:GetService("Workspace").Map["Temple of Time"].Lever.Lever.CFrame.Z > Doorsau.Z + Door2 or game:GetService("Workspace").Map["Temple of Time"].Lever.Lever.CFrame.Z < Doorsau.Z - Door2 then 
+            if (plr.Character.HumanoidRootPart.Position-game:GetService("Workspace").Map["Temple of Time"].Lever.Part.Position).Magnitude > 10 then
+                print("Pull Lever Status: Di chuyển đến cần gạt...")
+                Tween(game:GetService("Workspace").Map["Temple of Time"].Lever.Part.CFrame)
+            else
+                print("Pull Lever Status: Kéo cần gạt...")
+                fireproximityprompt(workspace.Map["Temple of Time"].Lever.Prompt.ProximityPrompt, 1)
+            end
+        else
+            print("Pull Lever Status: Đã hoàn thành!")
+            _G.AutoPullLever = false
+        end
+    else
+        print("Pull Lever Status: Cửa đã mở, không cần pull lever!")
+        _G.AutoPullLever = false
+    end
+end
+
+-- Hàm lấy Mirage Island server từ API
+function GetMirageIslandServers()
+    local HttpService = game:GetService("HttpService")
+    local apiUrl = "https://web-production-a0a2e.up.railway.app/mirageisland?key=khoadeptrai"
+    
+    local success, response = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(apiUrl))
+    end)
+    
+    if success then
+        if response and response.status == "true" and response.List and #response.List > 0 then
+            print("Danh sách server Mirage: " .. table.concat(response.List, ", "))
+            return response.List
+        else
+            print("API trả về không có dữ liệu server Mirage hoặc định dạng không đúng.")
+        end
+    else
+        print("Lỗi khi kết nối API: " .. tostring(response))
+    end
+    
+    return nil
+end
+
+-- Hàm hop vào server có Mirage Island
+function HopToMirageServer()
+    -- Kiểm tra xem Mirage Island đã có trong server hiện tại chưa
+    if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then
+        print("Pull Lever Status: Đã có Mirage Island trong server hiện tại!")
+        return true
+    end
+    
+    -- Nếu không có, lấy danh sách server từ API
+    local mirageServers = GetMirageIslandServers()
+    
+    if mirageServers and #mirageServers > 0 then
+        print("Pull Lever Status: Tìm thấy " .. #mirageServers .. " server có Mirage Island...")
+        
+        -- Lọc ra các job ID không trùng với server hiện tại
+        local validServers = {}
+        for _, jobId in ipairs(mirageServers) do
+            if jobId ~= game.JobId and type(jobId) == "string" and #jobId > 0 then
+                table.insert(validServers, jobId)
+            end
+        end
+        
+        if #validServers > 0 then
+            -- Chọn ngẫu nhiên 1 server từ danh sách để tránh mọi người cùng vào 1 server
+            local randomIndex = math.random(1, #validServers)
+            local selectedJobId = validServers[randomIndex]
+            
+            print("Pull Lever Status: Teleport đến server Mirage Island (Job ID: " .. selectedJobId:sub(1, 8) .. "...)")
+            
+            -- Thử teleport
+            local success, errorMsg = pcall(function()
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, selectedJobId)
+            end)
+            
+            if not success then
+                print("Lỗi khi teleport: " .. tostring(errorMsg))
+                
+                -- Nếu lỗi, thử server tiếp theo
+                table.remove(validServers, randomIndex)
+                if #validServers > 0 then
+                    randomIndex = math.random(1, #validServers)
+                    selectedJobId = validServers[randomIndex]
+                    print("Thử server khác: " .. selectedJobId:sub(1, 8) .. "...")
+                    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, selectedJobId)
+                end
+            end
+            
+            wait(5) -- Đợi teleport
+            return false
+        else
+            print("Pull Lever Status: Không tìm thấy server Mirage khác!")
+        end
+    else
+        print("Pull Lever Status: Không thể lấy danh sách server Mirage từ API!")
+    end
+    
+    wait(10) -- Đợi một chút trước khi thử lại
+    return false
+end
+
+-- Chạy mmb từ thư viện đã import
+spawn(function()
+    while wait() do
+        m.mmb()
+    end
+end)
+
+-- Auto pull lever loop
+task.spawn(function()
+    while task.wait(1) do 
+        pcall(function()
+            if _G.AutoPullLever then 
+                print("Đang thực hiện Pull Lever...")
+                PullLever()
+            end
+        end)
+    end
+end)
+
+-- Thông báo khởi động
+print("Auto Pull Lever Script đã được chạy thành công!")
+print("Status: ACTIVE - Đang tự động kéo cần gạt") 
