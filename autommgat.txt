@@ -130,29 +130,39 @@ function PullLever()
             end
         end
         
-        -- Kiểm tra thời gian trong game 
-        if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GameTimeCheck() == "Night" then
-            local v213 = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Check")
-            if v213 == 1 then
-                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Begin")
-            elseif v213 == 2 then
-                Tween(CFrame.new(2956.78, 2281.85, -7217.63))
-                if (CFrame.new(2956.78, 2281.85, -7217.63).Position-plr.Character.HumanoidRootPart.Position).Magnitude < 8 then 
-                    local args = {
-                        [1] = "RaceV4Progress",
-                        [2] = "Teleport"
-                    }
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
-                end
-            elseif v213 == 3 then
-                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Continue")
-            else
-                CollectBlueGear()
+        -- Tween đến HighestPoint của Mirage Island trước
+        if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then
+            local highestPoint = getHighestPoint()
+            if highestPoint then
+                print("Pull Lever Status: Di chuyển đến điểm cao nhất của Mirage Island...")
+                Tween(highestPoint.CFrame*CFrame.new(0, 211.88, 0))
+                task.wait(1)
             end
-        elseif game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GameTimeCheck() ~= "Night" then 
-            print("Pull Lever Status: Đợi đến đêm...")
-            task.wait(5)
-            return
+            
+            -- Sau khi tween đến, kiểm tra thời gian trong game
+            if GameTimeCheck() == "Night" then
+                local v213 = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Check")
+                if v213 == 1 then
+                    game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Begin")
+                elseif v213 == 2 then
+                    Tween(CFrame.new(2956.78, 2281.85, -7217.63))
+                    if (CFrame.new(2956.78, 2281.85, -7217.63).Position-plr.Character.HumanoidRootPart.Position).Magnitude < 8 then 
+                        local args = {
+                            [1] = "RaceV4Progress",
+                            [2] = "Teleport"
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+                    end
+                elseif v213 == 3 then
+                    game.ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Continue")
+                else
+                    CollectBlueGear()
+                end
+            else
+                print("Pull Lever Status: Đã đến vị trí, đang đợi đến đêm...")
+                task.wait(5)
+                return
+            end
         end
     
         -- Kiểm tra vị trí cần gạt và thực hiện kéo cần
