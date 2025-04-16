@@ -1,215 +1,635 @@
--- Auto Pull Lever Script
--- Automatically pulls lever and searches for Mirage Island
+if not game:IsLoaded() then repeat game.Loaded:Wait() until game:IsLoaded() end
 
 -- Configuration
-getgenv().AutoPullLever = true -- Bật/tắt tính năng auto pull lever
-getgenv().TweenSpeed = 300 -- Tốc độ di chuyển
+getgenv().Settings = {
+    ['Pull Lever'] = true, -- Enable/disable auto pull lever
+    ['Auto Rejoin'] = true, -- Auto rejoin when disconnected
+    ['Anti AFK'] = true, -- Prevent AFK kicks
+    ['Check Interval'] = 1, -- Interval to check for Mystic Island (seconds)
+    ['Teleport Speed'] = 300, -- Speed for tweening to locations
+    ['Show GUI'] = true, -- Show status GUI
+    ['Server Hop'] = true, -- Enable server hopping to find Mirage Island
+    ['Server Hop Delay'] = 60, -- Time to wait before checking for a new server (seconds)
+    ['API Key'] = "khoadeptrai" -- API key for Mirage Island server finder
+}
 
 -- Variables
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local RunService = game:GetService("RunService")
-local localPlayer = Players.LocalPlayer
+local Pull_Lever_H = false -- Flag to track if lever has been pulled
+local isTweening = false -- Flag to track if player is currently tweening
+local isCheckingMysticIsland = false -- Flag to prevent multiple concurrent checks
+local lastCheckTime = 0 -- Last time the mystic island was checked
+local lastServerHopTime = 0 -- Last time a server hop was attempted
+local isHopping = false -- Flag to track if currently server hopping
+local consecutiveFailedChecks = 0 -- Track consecutive failed checks for Mystic Island
 
-local IsTweening = false
-local ApiUrl = "https://web-production-a0a2e.up.railway.app/mirageisland?key=khoadeptrai"
-local Doorsau = CFrame.new(28576.4688, 14935.9512, 75.469101, -1, -4.22219593e-08, 1.13133396e-08, 0, -0.258819044, -0.965925813, 4.37113883e-08, -0.965925813, 0.258819044)
-local Door2 = 0.2
+-- Add Anti-AFK
+if getgenv().Settings['Anti AFK'] then
+    spawn(function()
+        local VirtualUser = game:GetService("VirtualUser")
+        game:GetService("Players").LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+            print("Anti-AFK: Prevented kick")
+        end)
+        print("Anti-AFK: Enabled")
+    end)
+end
 
--- Functions
-function ToTarget(Pos)
-    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") or 
-       not localPlayer.Character:FindFirstChild("Humanoid") or 
-       localPlayer.Character.Humanoid.Health <= 0 then
-        print("Nhân vật đã chết, đang đợi hồi sinh...")
-        wait(5) -- Wait for respawn
+-- Add Auto Rejoin
+if getgenv().Settings['Auto Rejoin'] then
+    spawn(function()
+        game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+            if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
+                print("Auto Rejoin: Game crashed, rejoining...")
+                game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+            end
+        end)
+        print("Auto Rejoin: Enabled")
+    end)
+end
+
+-- Function to get servers with Mirage Island from API
+local function GetMirageServers()
+    local HttpService = game:GetService("HttpService")
+    local apiUrl = "https://web-production-a0a2e.up.railway.app/mirageisland?key=" .. getgenv().Settings['API Key']
+    
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(apiUrl))
+    end)
+    
+    if success and result and result.status == "true" and #result.List > 0 then
+        return result.List
+    else
+        return nil
+    end
+end
+
+-- Function to join a specific server
+local function JoinServer(jobId)
+    if not jobId then return false end
+    
+    local TeleportService = game:GetService("TeleportService")
+    local success, errorMsg = pcall(function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId, game:GetService("Players").LocalPlayer)
+    end)
+    
+    if not success then
+        print("Failed to teleport to server: " .. tostring(errorMsg))
+        return false
+    end
+    
+    return true
+end
+
+-- Server hopping function
+local function ServerHop()
+    if isHopping then return end
+    isHopping = true
+    
+    -- Update GUI if available
+    if GUI then
+        GUI.Status.Text = "Status: Finding servers with Mirage..."
+        GUI.Status.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+    end
+    
+    print("Checking for servers with Mirage Island...")
+    local serverList = GetMirageServers()
+    
+    if serverList and #serverList > 0 then
+        -- Update GUI
+        if GUI then
+            GUI.Status.Text = "Status: Found " .. #serverList .. " servers with Mirage!"
+            GUI.Status.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        end
+        
+        print("Found " .. #serverList .. " servers with Mirage Island!")
+        
+        -- Try to join each server in the list
+        for i, jobId in ipairs(serverList) do
+            -- Skip current server if we're already in it
+            if jobId == game.JobId then
+                print("Already in this Mirage server, trying next one...")
+                continue
+            end
+            
+            print("Attempting to join server: " .. jobId .. " (" .. i .. "/" .. #serverList .. ")")
+            
+            if GUI then
+                GUI.Status.Text = "Status: Joining Mirage server..."
+                GUI.Status.TextColor3 = Color3.fromRGB(0, 255, 0)
+            end
+            
+            -- Try to join the server
+            local joined = JoinServer(jobId)
+            if joined then
+                print("Server hop initiated!")
+                wait(5) -- Wait a bit to see if teleport works
+            end
+            
+            -- If we're still here, teleport failed, try next server
+            wait(1)
+        end
+        
+        -- If we're still here, all teleports failed
+        print("Failed to join any server with Mirage Island!")
+        
+        if GUI then
+            GUI.Status.Text = "Status: Failed to join Mirage servers"
+            GUI.Status.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        end
+    else
+        print("No servers with Mirage Island found or API error")
+        
+        if GUI then
+            GUI.Status.Text = "Status: No Mirage servers found"
+            GUI.Status.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end
+    end
+    
+    lastServerHopTime = tick()
+    isHopping = false
+end
+
+-- Create a simple GUI to display status
+local GUI
+if getgenv().Settings['Show GUI'] then
+    spawn(function()
+        local ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "AutoPullLeverGUI"
+        ScreenGui.ResetOnSpawn = false
+        
+        -- Use syn.protect_gui if available to prevent GUI deletion
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
+            ScreenGui.Parent = game:GetService("CoreGui")
+        elseif gethui then
+            ScreenGui.Parent = gethui()
+        else
+            ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        end
+        
+        local MainFrame = Instance.new("Frame")
+        MainFrame.Name = "MainFrame"
+        MainFrame.Size = UDim2.new(0, 250, 0, 150) -- Increased height for server hop status
+        MainFrame.Position = UDim2.new(0.8, 0, 0.1, 0)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        MainFrame.BorderSizePixel = 0
+        MainFrame.Active = true
+        MainFrame.Draggable = true
+        MainFrame.Parent = ScreenGui
+        
+        local UICorner = Instance.new("UICorner")
+        UICorner.CornerRadius = UDim.new(0, 10)
+        UICorner.Parent = MainFrame
+        
+        local Title = Instance.new("TextLabel")
+        Title.Name = "Title"
+        Title.Size = UDim2.new(1, 0, 0, 30)
+        Title.BackgroundTransparency = 1
+        Title.Text = "Auto Pull Lever"
+        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Title.TextSize = 18
+        Title.Font = Enum.Font.GothamBold
+        Title.Parent = MainFrame
+        
+        local StatusLabel = Instance.new("TextLabel")
+        StatusLabel.Name = "Status"
+        StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+        StatusLabel.Position = UDim2.new(0, 0, 0, 35)
+        StatusLabel.BackgroundTransparency = 1
+        StatusLabel.Text = "Status: Waiting..."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        StatusLabel.TextSize = 14
+        StatusLabel.Font = Enum.Font.Gotham
+        StatusLabel.Parent = MainFrame
+        
+        local IslandLabel = Instance.new("TextLabel")
+        IslandLabel.Name = "IslandStatus"
+        IslandLabel.Size = UDim2.new(1, 0, 0, 20)
+        IslandLabel.Position = UDim2.new(0, 0, 0, 55)
+        IslandLabel.BackgroundTransparency = 1
+        IslandLabel.Text = "Mystic Island: Not Found"
+        IslandLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        IslandLabel.TextSize = 14
+        IslandLabel.Font = Enum.Font.Gotham
+        IslandLabel.Parent = MainFrame
+        
+        local LeverLabel = Instance.new("TextLabel")
+        LeverLabel.Name = "LeverStatus"
+        LeverLabel.Size = UDim2.new(1, 0, 0, 20)
+        LeverLabel.Position = UDim2.new(0, 0, 0, 75)
+        LeverLabel.BackgroundTransparency = 1
+        LeverLabel.Text = "Lever: Not Pulled"
+        LeverLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        LeverLabel.TextSize = 14
+        LeverLabel.Font = Enum.Font.Gotham
+        LeverLabel.Parent = MainFrame
+        
+        local TimeLabel = Instance.new("TextLabel")
+        TimeLabel.Name = "TimeStatus"
+        TimeLabel.Size = UDim2.new(1, 0, 0, 20)
+        TimeLabel.Position = UDim2.new(0, 0, 0, 95)
+        TimeLabel.BackgroundTransparency = 1
+        TimeLabel.Text = "Game Time: Checking..."
+        TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TimeLabel.TextSize = 14
+        TimeLabel.Font = Enum.Font.Gotham
+        TimeLabel.Parent = MainFrame
+        
+        -- Add Server Hop status
+        local ServerHopLabel = Instance.new("TextLabel")
+        ServerHopLabel.Name = "ServerHopStatus"
+        ServerHopLabel.Size = UDim2.new(1, 0, 0, 20)
+        ServerHopLabel.Position = UDim2.new(0, 0, 0, 115)
+        ServerHopLabel.BackgroundTransparency = 1
+        ServerHopLabel.Text = "Server Hop: Waiting..."
+        ServerHopLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ServerHopLabel.TextSize = 14
+        ServerHopLabel.Font = Enum.Font.Gotham
+        ServerHopLabel.Parent = MainFrame
+        
+        -- Add close button
+        local CloseButton = Instance.new("TextButton")
+        CloseButton.Name = "CloseButton"
+        CloseButton.Size = UDim2.new(0, 20, 0, 20)
+        CloseButton.Position = UDim2.new(1, -25, 0, 5)
+        CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        CloseButton.Text = "X"
+        CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CloseButton.TextSize = 14
+        CloseButton.Font = Enum.Font.GothamBold
+        CloseButton.Parent = MainFrame
+        
+        local UICornerButton = Instance.new("UICorner")
+        UICornerButton.CornerRadius = UDim.new(0, 5)
+        UICornerButton.Parent = CloseButton
+        
+        CloseButton.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+            GUI = nil
+        end)
+        
+        GUI = {
+            Status = StatusLabel,
+            Island = IslandLabel,
+            Lever = LeverLabel,
+            Time = TimeLabel,
+            ServerHop = ServerHopLabel
+        }
+        
+        -- Update GUI time periodically
+        spawn(function()
+            while wait(1) and GUI do
+                local gameTime = tostring(game:GetService("Lighting").TimeOfDay)
+                if GUI and GUI.Time then
+                    GUI.Time.Text = "Game Time: " .. gameTime
+                
+                    -- Change color based on valid pull times
+                    local hour = tonumber(string.split(gameTime, ":")[1])
+                    if (hour >= 18 and hour < 23) or (hour >= 0 and hour <= 5) then
+                        GUI.Time.TextColor3 = Color3.fromRGB(100, 255, 100) -- Green for valid time
+                    else
+                        GUI.Time.TextColor3 = Color3.fromRGB(255, 100, 100) -- Red for invalid time
+                    end
+                else
+                    break
+                end
+            end
+        end)
+    end)
+end
+
+-- Update GUI status
+local function UpdateGUI(status, hasIsland, leverPulled, serverHopStatus)
+    if not GUI then return end
+    
+    if status then
+        GUI.Status.Text = "Status: " .. status
+    end
+    
+    if hasIsland ~= nil then
+        GUI.Island.Text = "Mystic Island: " .. (hasIsland and "Found" or "Not Found")
+        GUI.Island.TextColor3 = hasIsland and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    end
+    
+    if leverPulled ~= nil then
+        GUI.Lever.Text = "Lever: " .. (leverPulled and "Pulled" or "Not Pulled")
+        GUI.Lever.TextColor3 = leverPulled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    end
+    
+    if serverHopStatus then
+        GUI.ServerHop.Text = "Server Hop: " .. serverHopStatus
+    end
+end
+
+-- Improved teleport function using tweening for smoother movement
+local function TP(destination)
+    local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
+    local player = Players.LocalPlayer
+    local character = player.Character
+    
+    if not character or not character:FindFirstChild("Humanoid") or character.Humanoid.Health <= 0 then
+        print("Cannot teleport: Character not ready")
+        return false
+    end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        print("Cannot teleport: HumanoidRootPart not found")
+        return false
+    end
+    
+    -- Make sure character is not sitting
+    if character.Humanoid.Sit then
+        character.Humanoid.Sit = false
+        wait(0.1)
+    end
+    
+    -- Cancel any existing tweens
+    if isTweening then
+        isTweening = false
+        wait(0.1)
+    end
+    
+    -- Calculate distance
+    local distance = (destination.Position - humanoidRootPart.Position).Magnitude
+    
+    -- If close enough, just set position directly
+    if distance < 50 then
+        humanoidRootPart.CFrame = destination
+        return true
+    end
+    
+    -- Otherwise tween to the destination
+    isTweening = true
+    UpdateGUI("Traveling to Mystic Island...", true, Pull_Lever_H)
+    
+    local tween = TweenService:Create(
+        humanoidRootPart,
+        TweenInfo.new(distance / getgenv().Settings['Teleport Speed'], Enum.EasingStyle.Linear),
+        {CFrame = destination}
+    )
+    
+    tween:Play()
+    
+    -- Wait for tween to complete
+    tween.Completed:Connect(function()
+        isTweening = false
+    end)
+    
+    -- Safety timeout
+    spawn(function()
+        wait(distance / getgenv().Settings['Teleport Speed'] + 2)
+        if isTweening then
+            isTweening = false
+        end
+    end)
+    
+    return true
+end
+
+-- Improved function to check if it's valid time to pull lever
+local function IsValidPullTime()
+    local timeOfDay = game:GetService("Lighting").TimeOfDay
+    local hour = tonumber(string.split(timeOfDay, ":")[1])
+    
+    return (hour >= 18 and hour < 23) or (hour >= 0 and hour <= 5)
+end
+
+-- Function to try pulling the lever
+local function PullLever()
+    if Pull_Lever_H then return end
+    
+    if not IsValidPullTime() then
+        print("Not a valid time to pull lever!")
+        UpdateGUI("Wrong time for lever", true, false)
         return
     end
     
-    -- Check again
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and 
-       localPlayer.Character:FindFirstChild("Humanoid") and 
-       localPlayer.Character.Humanoid.Health > 0 then
-        
-        -- Calculate distance
-        local Distance = (Pos.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
-        
-        -- Make sure character is not sitting
-        if localPlayer.Character.Humanoid.Sit == true then
-            localPlayer.Character.Humanoid.Sit = false
-        end
-        
-        -- Create tween
-        local Tween
-        pcall(function()
-            Tween = TweenService:Create(
-                localPlayer.Character.HumanoidRootPart,
-                TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
-                {CFrame = Pos}
-            )
-        end)
-        
-        -- Start tween
-        IsTweening = true
-        Tween:Play()
-        
-        -- Wait for tween to complete
-        Tween.Completed:Connect(function()
-            IsTweening = false
-        end)
-        
-        -- Teleport if close enough
-        if Distance <= 370 then
-            if Tween then Tween:Cancel() end
-            localPlayer.Character.HumanoidRootPart.CFrame = Pos
-            IsTweening = false
-        end
-    else
-        print("Nhân vật chưa sẵn sàng để di chuyển")
-    end
-end
-
-function GetGameTime()
-    local ClockTime = game.Lighting.ClockTime
-    if ClockTime >= 18 or ClockTime < 5 then
-        return "Night"
-    else
-        return "Day"
-    end
-end
-
-function GetBlueGear()
-    if game.workspace.Map:FindFirstChild("MysticIsland") then
-        for _, v in pairs(game.workspace.Map.MysticIsland:GetChildren()) do
-            if v:IsA("MeshPart") and v.MeshId == "rbxassetid://10153114969" then
-                return v
-            end
-        end
-    end
-    return nil
-end
-
-function GetHighestPoint()
-    if not game.workspace.Map:FindFirstChild("MysticIsland") then
-        return nil
-    end
-    for _, v in pairs(game:GetService("Workspace").Map.MysticIsland:GetDescendants()) do
-        if v:IsA("MeshPart") and v.MeshId == "rbxassetid://6745037796" then
-            return v
-        end
-    end
-    return nil
-end
-
-function CollectBlueGear()
-    local BlueGear = GetBlueGear()
-    if BlueGear and not BlueGear.CanCollide and BlueGear.Transparency ~= 1 then
-        ToTarget(CFrame.new(BlueGear.Position))
-    elseif BlueGear and BlueGear.Transparency == 1 then
-        local HighestPoint = GetHighestPoint()
-        if HighestPoint then
-            if (HighestPoint.CFrame * CFrame.new(0, 211.88, 0).Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude > 10 then 
-                ToTarget(HighestPoint.CFrame * CFrame.new(0, 211.88, 0))
-            else
-                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, game:GetService("Lighting"):GetMoonDirection() + workspace.CurrentCamera.CFrame.Position)
-                task.wait(0.1)
-                game:service("VirtualInputManager"):SendKeyEvent(true, "T", false, game)
-                task.wait()
-                game:service("VirtualInputManager"):SendKeyEvent(false, "T", false, game)
-                task.wait(1.5)
-            end
-        end
-    end
-end
-
-function FetchMirageServers()
-    local success, result = pcall(function()
-        local response = game:HttpGet(ApiUrl)
-        return HttpService:JSONDecode(response)
-    end)
+    UpdateGUI("Setting up camera...", true, false)
     
-    if success and result and result.status == "true" and result.List and #result.List > 0 then
-        print("Đã tìm thấy " .. #result.List .. " server có Mirage Island")
-        return result.List
-    else
-        print("Không thể tìm thấy server có Mirage Island hoặc lỗi API")
-        return {}
+    -- Get current time
+    local timeOfDay = game:GetService("Lighting").TimeOfDay
+    local hour = tonumber(string.split(timeOfDay, ":")[1])
+    
+    -- Set up camera based on time
+    game.Lighting.Sky.MoonAngularSize = 60
+    
+    if hour >= 18 and hour < 20 then
+        workspace.CurrentCamera.CFrame = CFrame.new(256.224945, 10.0014305, 7402.05225, -0.86680156, -0.285385847, -0.408913255, 0, 0.820035219, -0.57231313, 0.498653352, -0.496081918, -0.710807681)
+    elseif hour >= 20 and hour < 23 then
+        workspace.CurrentCamera.CFrame = CFrame.new(276.224945, 10.0014305, 7402.05225, -0.86680156, -0.285385847, -0.408913255, 0, 0.820035219, -0.57231313, 0.498653352, -0.496081918, -0.710807681)
+    elseif hour >= 23 then
+        workspace.CurrentCamera.CFrame = CFrame.new(280.220398, 10.0163631, 7398.78711, -0.99949348, 0.0149384635, 0.028100336, 9.31322464e-10, 0.882983506, -0.469404191, -0.0318243057, -0.469166428, -0.882536292)
+    elseif hour >= 0 and hour < 2 then
+        workspace.CurrentCamera.CFrame = CFrame.new(187.110519, 311.094543, 7251.67285, -0.983385324, 0.120902099, 0.135410622, -7.4505806e-09, 0.745938301, -0.666015029, -0.181530595, -0.654949427, -0.733544707)
+    elseif hour >= 2 and hour <= 5 then
+        workspace.CurrentCamera.CFrame = CFrame.new(17.9850445, 541.176575, 6902.08154, -0.866957009, 0.111039586, 0.485855788, 0, 0.974864244, -0.222799659, -0.498383105, -0.193157732, -0.845165253)
     end
-end
-
-function JoinMirageServer()
-    local servers = FetchMirageServers()
-    if #servers > 0 then
-        print("Đang tham gia server có Mirage Island...")
-        
-        for _, jobId in ipairs(servers) do
-            pcall(function()
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId)
-                task.wait(3)
-            end)
-        end
-    else
-        print("Không tìm thấy server nào có Mirage Island, sẽ thử lại sau...")
-        task.wait(10)
+    
+    wait(0.5)
+    
+    -- Press T key to interact
+    UpdateGUI("Pressing T key...", true, false)
+    game:service('VirtualInputManager'):SendKeyEvent(true, "T", false, game)
+    wait(1)
+    game:service('VirtualInputManager'):SendKeyEvent(false, "T", false, game)
+    wait(2)
+    
+    -- Check for lever parts
+    local foundLever = false
+    local mysticIsland = game:GetService("Workspace").Map:FindFirstChild("MysticIsland")
+    
+    if not mysticIsland then
+        print("Mystic Island disappeared!")
+        UpdateGUI("Island disappeared!", false, false)
+        return
     end
-end
-
-function PullLever()
-    if not ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer("CheckTempleDoor") then 
-        if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GetGameTime() == "Night" then
-            local raceProgress = ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Check")
-            if raceProgress == 1 then
-                ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Begin")
-            elseif raceProgress == 2 then
-                ToTarget(CFrame.new(2956.78, 2281.85, -7217.63))
-                if (CFrame.new(2956.78, 2281.85, -7217.63).Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude < 8 then 
-                    local args = {
-                        [1] = "RaceV4Progress",
-                        [2] = "Teleport"
-                    }
-                    ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(args))
+    
+    UpdateGUI("Looking for lever...", true, false)
+    wait(15) -- Wait for the island to fully appear
+    
+    -- Find and interact with the lever
+    for i, v in pairs(mysticIsland:GetChildren()) do
+        if v.ClassName == 'MeshPart' and v.Name == 'Part' and v.Transparency == 0 then
+            foundLever = true
+            
+            UpdateGUI("Found lever! Interacting...", true, false)
+            
+            local attempts = 0
+            local success = false
+            
+            repeat
+                attempts = attempts + 1
+                
+                -- Teleport to lever
+                TP(v.CFrame)
+                wait(0.5)
+                
+                -- Jump to interact with lever
+                game:service('VirtualInputManager'):SendKeyEvent(true, "Space", false, game)
+                wait(0.5)
+                game:service('VirtualInputManager'):SendKeyEvent(false, "Space", false, game)
+                wait(1)
+                
+                -- Check if lever became transparent (successfully interacted)
+                success = v.Transparency > 0
+                
+                if not success and attempts >= 10 then
+                    -- If failed after many attempts, try a different approach
+                    UpdateGUI("Trying alternative approach...", true, false)
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+                    wait(0.5)
+                    game:service('VirtualInputManager'):SendKeyEvent(true, "E", false, game)
+                    wait(0.5)
+                    game:service('VirtualInputManager'):SendKeyEvent(false, "E", false, game)
+                    wait(1)
+                    success = v.Transparency > 0
                 end
-            elseif raceProgress == 3 then
-                ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV4Progress", "Continue")
+                
+            until success or attempts >= 20
+            
+            wait(0.5)
+            
+            -- Check if successfully interacted with lever
+            if game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CheckTempleDoor") == true then
+                Pull_Lever_H = true
+                UpdateGUI("Successfully pulled lever!", true, true, "Complete")
+                print("✅ Quest Pull Lever completed!")
+                
+                -- Reset counter since we successfully found and pulled the lever
+                consecutiveFailedChecks = 0
             else
-                CollectBlueGear()
+                UpdateGUI("Failed to activate temple door", true, false)
+                print("❌ Failed to activate temple door")
             end
-        elseif game:GetService("Workspace").Map:FindFirstChild("MysticIsland") and GetGameTime() ~= "Night" then 
-            print("Đang đợi tới đêm...")
-            task.wait(5)
-        elseif not game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then 
-            print("Không tìm thấy Mirage Island trong server này, đang tìm server khác...")
-            JoinMirageServer()
+            
+            break
         end
-    else
-        local lever = game:GetService("Workspace").Map["Temple of Time"].Lever
-        if lever.Lever.CFrame.Z > Doorsau.Z + Door2 or lever.Lever.CFrame.Z < Doorsau.Z - Door2 then 
-            if (localPlayer.Character.HumanoidRootPart.Position - lever.Part.Position).Magnitude > 10 then
-                ToTarget(lever.Part.CFrame)
-            else
-                fireproximityprompt(lever.Prompt.ProximityPrompt, 1)
-            end
-        else
-            print("Đã kéo cần thành công!")
-            getgenv().AutoPullLever = false
-        end
+    end
+    
+    if not foundLever then
+        UpdateGUI("No lever found on island", true, false)
+        print("❌ No lever found on Mystic Island")
     end
 end
 
--- Main Loop
-spawn(function()
-    while true do
-        if getgenv().AutoPullLever then
-            pcall(function()
-                PullLever()
-            end)
+-- Function to check for Mystic Island
+local function CheckMysticIsland()
+    if isCheckingMysticIsland then return end
+    if not getgenv().Settings['Pull Lever'] then return end
+    if Pull_Lever_H then return end
+    
+    isCheckingMysticIsland = true
+    local currentTime = tick()
+    
+    -- Don't check too frequently
+    if currentTime - lastCheckTime < getgenv().Settings['Check Interval'] then
+        isCheckingMysticIsland = false
+        return
+    end
+    
+    lastCheckTime = currentTime
+    
+    -- Check if Mystic Island exists
+    local mysticIsland = game:GetService("Workspace").Map:FindFirstChild("MysticIsland")
+    if mysticIsland then
+        UpdateGUI("Found Mystic Island!", true, Pull_Lever_H, "Not needed (Island found)")
+        print("✅ Mystic Island found!")
+        
+        -- Reset counter since we found the island
+        consecutiveFailedChecks = 0
+        
+        -- Make sure player is not sitting
+        if game.Players.LocalPlayer.Character.Humanoid.Sit == true then
+            game.Players.LocalPlayer.Character.Humanoid.Sit = false
+            wait(0.5)
         end
-        task.wait(1)
+        
+        -- Teleport to Mystic Island
+        local pointer = mysticIsland.WorldPivot * CFrame.new(0, 500, 0)
+        local success = TP(pointer)
+        
+        if success then
+            wait(1)
+            
+            -- Check if close enough to the island
+            local distance = (pointer.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if distance <= 50 then
+                PullLever()
+            else
+                print("Failed to reach Mystic Island, distance: " .. distance)
+                UpdateGUI("Failed to reach island", true, Pull_Lever_H)
+            end
+        end
+    else
+        -- Island not found, increment counter
+        consecutiveFailedChecks = consecutiveFailedChecks + 1
+        
+        -- Check if we should server hop
+        if getgenv().Settings['Server Hop'] and 
+           consecutiveFailedChecks >= 10 and -- Check 10 times before hopping
+           currentTime - lastServerHopTime >= getgenv().Settings['Server Hop Delay'] and
+           not isHopping then
+            
+            UpdateGUI("No island found, preparing to hop...", false, Pull_Lever_H, "Preparing...")
+            print("No Mystic Island found after " .. consecutiveFailedChecks .. " checks, attempting server hop")
+            
+            -- Spawn a new thread for server hopping to prevent blocking
+            spawn(ServerHop)
+        else
+            local timeLeft = ""
+            if getgenv().Settings['Server Hop'] then
+                local secondsLeft = math.max(0, getgenv().Settings['Server Hop Delay'] - (currentTime - lastServerHopTime))
+                if secondsLeft > 0 and consecutiveFailedChecks >= 10 then
+                    timeLeft = " (Hop in " .. math.floor(secondsLeft) .. "s)"
+                end
+            end
+            
+            UpdateGUI("Waiting for Mystic Island...", false, Pull_Lever_H, 
+                      getgenv().Settings['Server Hop'] and ("Waiting" .. timeLeft) or "Disabled")
+        end
+    end
+    
+    isCheckingMysticIsland = false
+end
+
+-- Start the main loop
+spawn(function()
+    print("Auto Pull Lever script started!")
+    UpdateGUI("Script started", false, false, getgenv().Settings['Server Hop'] and "Enabled" or "Disabled")
+    
+    while wait(getgenv().Settings['Check Interval']) do
+        pcall(function()
+            CheckMysticIsland()
+        end)
     end
 end)
 
--- Notifications
-print("Auto Pull Lever đã được kích hoạt!")
+-- Add auto reset for cases where the script gets stuck
+spawn(function()
+    while wait(300) do -- Reset every 5 minutes if needed
+        pcall(function()
+            if getgenv().Settings['Pull Lever'] and not Pull_Lever_H then
+                -- If we've been stuck and not found the island for a while
+                local currentTime = tick()
+                if currentTime - lastCheckTime > 180 then -- 3 minutes with no successful checks
+                    print("Script may be stuck, resetting position...")
+                    UpdateGUI("Resetting position...", nil, Pull_Lever_H)
+                    
+                    -- Try teleporting to a neutral location to reset
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
+                    wait(1)
+                    
+                    lastCheckTime = tick()
+                end
+            end
+        end)
+    end
+end)
+
+-- Notify script start
+print("Auto Pull Lever script loaded!")
+print("Script Status: " .. (getgenv().Settings['Pull Lever'] and "Enabled" or "Disabled"))
+print("Server Hop: " .. (getgenv().Settings['Server Hop'] and "Enabled" or "Disabled")) 
