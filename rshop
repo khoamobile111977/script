@@ -1,4 +1,4 @@
--- Xác nhận game là Blox Fruits thay vì chỉ kiểm tra Sea 1
+
 local validPlaceIds = {
     2753915549, -- Sea 1
     4442272183, -- Sea 2
@@ -19,13 +19,12 @@ if not isValidGame then
     return
 end
 
--- Tạo ScreenGui để chứa các UI elements
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GameUtilityGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Tạo Frame chính để chứa tất cả các elements
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 140, 0, 130) -- Thu nhỏ frame
@@ -33,7 +32,7 @@ MainFrame.Position = UDim2.new(0.98, -140, 0.05, 0)
 MainFrame.BackgroundTransparency = 1
 MainFrame.Parent = ScreenGui
 
--- Tạo TextButton để làm nút Reset
+
 local ResetButton = Instance.new("TextButton")
 ResetButton.Name = "ResetButton"
 ResetButton.Size = UDim2.new(0, 60, 0, 25)
@@ -47,7 +46,7 @@ ResetButton.BorderSizePixel = 0
 ResetButton.AutoButtonColor = true
 ResetButton.Parent = MainFrame
 
--- Tạo TextBox để nhập JobID
+
 local JobIDInput = Instance.new("TextBox")
 JobIDInput.Name = "JobIDInput" 
 JobIDInput.Size = UDim2.new(0, 75, 0, 25) -- Thu nhỏ input
@@ -61,7 +60,7 @@ JobIDInput.TextSize = 12
 JobIDInput.ClearTextOnFocus = false
 JobIDInput.Parent = MainFrame
 
--- Tạo nút Paste
+
 local PasteButton = Instance.new("TextButton")
 PasteButton.Name = "PasteButton"
 PasteButton.Size = UDim2.new(0, 60, 0, 25)
@@ -75,7 +74,6 @@ PasteButton.BorderSizePixel = 0
 PasteButton.AutoButtonColor = true
 PasteButton.Parent = MainFrame
 
--- Tạo nút Clear Job ID
 local ClearButton = Instance.new("TextButton")
 ClearButton.Name = "ClearButton"
 ClearButton.Size = UDim2.new(0, 60, 0, 25)
@@ -89,7 +87,6 @@ ClearButton.BorderSizePixel = 0
 ClearButton.AutoButtonColor = true
 ClearButton.Parent = MainFrame
 
--- Tạo nút Copy Job ID
 local CopyButton = Instance.new("TextButton")
 CopyButton.Name = "CopyButton"
 CopyButton.Size = UDim2.new(0, 60, 0, 25)
@@ -103,7 +100,6 @@ CopyButton.BorderSizePixel = 0
 CopyButton.AutoButtonColor = true
 CopyButton.Parent = MainFrame
 
--- Tạo nút Less People
 local LessPeopleButton = Instance.new("TextButton")
 LessPeopleButton.Name = "LessPeopleButton"
 LessPeopleButton.Size = UDim2.new(1, 0, 0, 25)
@@ -117,7 +113,6 @@ LessPeopleButton.BorderSizePixel = 0
 LessPeopleButton.AutoButtonColor = true
 LessPeopleButton.Parent = MainFrame
 
--- Thêm UICorner cho tất cả các elements
 local function addCorners(instance)
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 4)
@@ -131,7 +126,6 @@ addCorners(ClearButton)
 addCorners(LessPeopleButton)
 addCorners(CopyButton)
 
--- Thêm hiệu ứng hover cho các buttons
 local function addHoverEffect(button, originalColor)
     button.MouseEnter:Connect(function()
         button.BackgroundColor3 = originalColor:Lerp(Color3.fromRGB(0, 0, 0), 0.2)
@@ -148,7 +142,6 @@ addHoverEffect(ClearButton, Color3.fromRGB(255, 127, 0))
 addHoverEffect(LessPeopleButton, Color3.fromRGB(0, 255, 127))
 addHoverEffect(CopyButton, Color3.fromRGB(100, 100, 255))
 
--- Xử lý sự kiện Reset Character
 ResetButton.MouseButton1Click:Connect(function()
     local character = game.Players.LocalPlayer.Character
     if character then
@@ -156,7 +149,6 @@ ResetButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Xử lý sự kiện Copy Job ID
 CopyButton.MouseButton1Click:Connect(function()
     setclipboard(game.JobId)
     -- Hiệu ứng phản hồi
@@ -166,13 +158,11 @@ CopyButton.MouseButton1Click:Connect(function()
     CopyButton.Text = "Copy"
 end)
 
--- Xử lý sự kiện Clear Job ID
 ClearButton.MouseButton1Click:Connect(function()
     JobIDInput.Text = ""
     JobIDInput.PlaceholderText = "Job ID..."
 end)
 
--- Xử lý sự kiện Paste Job ID
 PasteButton.MouseButton1Click:Connect(function()
     local success, jobId = pcall(function()
         return getclipboard()
@@ -180,8 +170,7 @@ PasteButton.MouseButton1Click:Connect(function()
     
     if success and jobId and jobId ~= "" then
         JobIDInput.Text = jobId
-        
-        -- Teleport ngay lập tức sau khi dán
+
         local TeleportService = game:GetService("TeleportService")
         pcall(function()
             TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId)
@@ -193,7 +182,6 @@ PasteButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Thêm sự kiện nhập để tự động teleport
 JobIDInput.FocusLost:Connect(function(enterPressed)
     local jobId = JobIDInput.Text
     if jobId and jobId ~= "" then
@@ -204,7 +192,6 @@ JobIDInput.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- Xử lý sự kiện Less People - sửa để hoạt động với tất cả các sea
 LessPeopleButton.MouseButton1Click:Connect(function()
     local TeleportService = game:GetService("TeleportService")
     local servers = {}
@@ -239,7 +226,6 @@ local function setupScript()
     end
 end
 
--- Thiết lập sự kiện teleport để script vẫn hoạt động sau khi chuyển sea
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if State == Enum.TeleportState.Started then
         -- Lưu một script vào queue để chạy sau khi teleport hoàn tất
@@ -251,7 +237,6 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     end
 end)
 
--- Đảm bảo script hoạt động khi người chơi đã tải game
 if game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait() then
     setupScript()
 end
