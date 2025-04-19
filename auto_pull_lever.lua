@@ -178,7 +178,7 @@ function JoinMirageServer()
         if data.status == "true" and #data.List > 0 then
             for _, jobId in ipairs(data.List) do
                 print("[Auto Pull Lever] Joining server with Mirage Island: " .. jobId)
-                game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport", jobId)
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, jobId)
                 task.wait(5)
             end
         else
