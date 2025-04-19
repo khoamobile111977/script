@@ -274,16 +274,6 @@ function Tween(Pos)
                 bossCheckConnection:Disconnect()
             end
         end)
-        
-        -- Teleport if close enough
-        if Distance <= 370 then
-            if Tweeb then Tweeb:Cancel() end
-            localPlayer.Character.HumanoidRootPart.CFrame = Pos
-            IsTweening = false
-            if bossCheckConnection then 
-                bossCheckConnection:Disconnect()
-            end
-        end
     else
         print("Character not ready for tweening")
     end
