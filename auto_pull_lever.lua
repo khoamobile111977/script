@@ -207,8 +207,8 @@ function CheckTempleProgress()
         CommF:InvokeServer("RaceV4Progress", "Begin")
         return true
     elseif v213 == 2 then
-        Tween(CFrame.new(-5.400001525878906, 3.0299949645996094, 7.0099992752075195))
-        if (CFrame.new(-5.400001525878906, 3.0299949645996094, 7.0099992752075195).Position-plr.Character.HumanoidRootPart.Position).Magnitude < 8 then 
+        Tween(CFrame.new(-1943.595458984375, 37.54851150512695, -10288.0107421875))
+        if (CFrame.new(-1943.595458984375, 37.54851150512695, -10288.0107421875).Position-plr.Character.HumanoidRootPart.Position).Magnitude < 8 then 
             local args = {
                 [1] = "RaceV4Progress",
                 [2] = "Teleport"
