@@ -170,12 +170,19 @@ end
 
 function JoinMirageServer()
     local success, response = pcall(function()
-        return HttpService:GetAsync(API_URL)
+        return request({
+            Url = API_URL,
+            Method = "GET"
+        })
     end)
 
     if success then
-        local data = HttpService:JSONDecode(response)
-        if data.status == "true" and #data.List > 0 then
+        local data
+        pcall(function()
+            data = HttpService:JSONDecode(response.Body)
+        end)
+        
+        if data and data.status == "true" and #data.List > 0 then
             for _, jobId in ipairs(data.List) do
                 print("[Auto Pull Lever] Joining server with Mirage Island: " .. jobId)
                 game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, jobId)
@@ -186,7 +193,7 @@ function JoinMirageServer()
             task.wait(30)
         end
     else
-        print("[Auto Pull Lever] Failed to get Mirage Island servers. Error:", response)
+        print("[Auto Pull Lever] Failed to get Mirage Island servers. Error:", tostring(response))
         task.wait(30)
     end
 end
