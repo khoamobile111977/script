@@ -47,6 +47,8 @@ getgenv().TweenSpeed = 325 -- Tốc độ di chuyển, có thể điều chỉnh
 -- Variables
 local IsTweening = false
 local DefaultCameraZoom = 12.5 -- Default Roblox camera zoom
+local lastTimeState = "" -- Biến để lưu trạng thái thời gian cuối cùng
+local isAtMirageIsland = false -- Biến để theo dõi xem đã ở đảo chưa
 
 -- Functions
 function WaitForRespawn()
@@ -169,20 +171,27 @@ function ResetCamera()
     end
 end
 
+function TeleportToMirageIsland()
+    local highestPoint = getHighestPoint()
+    if highestPoint then
+        Tween(highestPoint.CFrame)
+        isAtMirageIsland = true
+        return true
+    end
+    return false
+end
+
 function CollectBlueGear()
-    -- Chỉ thực hiện CollectBlueGear vào buổi tối
     if function7() ~= "Night" then
-        print("[Auto Pull Lever] Waiting for Night time to collect Blue Gear...")
         return false
     end
     
     local BlueGear = getBlueGear()
     if BlueGear and not BlueGear.CanCollide and BlueGear.Transparency ~= 1 then
-        -- Zoom camera to first person before tweening
         SetFirstPersonCamera()
         Tween(getBlueGear().CFrame)
+        return true
     elseif BlueGear and BlueGear.Transparency == 1 then
-        -- Zoom camera to first person 
         SetFirstPersonCamera()
         
         if (getHighestPoint().CFrame*CFrame.new(0, 211.88, 0).Position-plr.Character.HumanoidRootPart.Position).Magnitude > 10 then 
@@ -194,11 +203,12 @@ function CollectBlueGear()
             task.wait()
             game:service("VirtualInputManager"):SendKeyEvent(false, "T", false, game)
             task.wait(1.5)
-            ResetCamera() -- Reset camera after completing the action
+            ResetCamera() 
         end
+        return true
     end
     
-    return true
+    return false
 end
 
 function CheckTempleProgress()
@@ -226,18 +236,26 @@ end
 function PullLever()
     if not CommF:InvokeServer("CheckTempleDoor") then 
         if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then
-            -- Nếu đã check tiến độ temple và có thể tiếp tục, thì không cần đợi đêm
+            local currentTimeState = function7()
+            
             if CheckTempleProgress() then
                 print("[Auto Pull Lever] Temple progress actions performed")
             else
-                -- Nếu cần collect BlueGear
-                if function7() == "Night" then
-                    -- Đêm rồi, có thể collect
-                    CollectBlueGear()
+                if not isAtMirageIsland then
+                    if TeleportToMirageIsland() then
+                        print("[Auto Pull Lever] Teleported to Mirage Island. " .. (currentTimeState == "Night" and "Starting Blue Gear collection..." or "Waiting for night time..."))
+                    end
                 else
-                    -- Nếu trời sáng, chỉ thông báo và chờ đợi đêm đến
-                    print("[Auto Pull Lever] Mirage Island found! Waiting for night to collect Blue Gear...")
-                    -- Vẫn tiếp tục các chức năng khác khi trời sáng
+                    if currentTimeState == "Night" then
+                        if CollectBlueGear() then
+                            print("[Auto Pull Lever] Collecting Blue Gear...")
+                        end
+                    else
+                        if currentTimeState ~= lastTimeState then  
+                            print("[Auto Pull Lever] Currently on Mirage Island. Waiting for night time...")
+                            lastTimeState = currentTimeState
+                        end
+                    end
                 end
             end
         elseif not game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then 
@@ -245,7 +263,6 @@ function PullLever()
             JoinMirageServer()
         end
     
-        -- Phần pull lever có thể thực hiện bất kể ngày hay đêm
         if game:GetService("Workspace").Map["Temple of Time"].Lever.Lever.CFrame.Z > Doorsau.Z + Door2 or game:GetService("Workspace").Map["Temple of Time"].Lever.Lever.CFrame.Z < Doorsau.Z - Door2 then 
             if (plr.Character.HumanoidRootPart.Position-game:GetService("Workspace").Map["Temple of Time"].Lever.Part.Position).Magnitude > 10 then
                 Tween(game:GetService("Workspace").Map["Temple of Time"].Lever.Part.CFrame)
@@ -254,7 +271,7 @@ function PullLever()
             end
         else
             print("[Auto Pull Lever] Pull Lever Complete!")
-            ResetCamera() -- Đảm bảo reset camera sau khi hoàn thành
+            ResetCamera() 
         end
     else
         print("[Auto Pull Lever] Temple Door already open!")
@@ -291,14 +308,12 @@ function JoinMirageServer()
     end
 end
 
--- Cleanup function when script stops
 local function CleanupOnStop()
-    ResetCamera() -- Reset camera zoom when script stops
+    ResetCamera() 
 end
 
--- Main Loop
 spawn(function()
-    while task.wait() do 
+    while task.wait(1) do  
         pcall(function()
             PullLever()
         end)
