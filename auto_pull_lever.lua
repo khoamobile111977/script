@@ -43,7 +43,7 @@ local Door2 = 0.2
 local API_URL = "https://web-production-a0a2e.up.railway.app/mirageisland?key=khoadeptrai"
 
 -- Global settings for Tween
-getgenv().TweenSpeed = 180 -- Tốc độ di chuyển, có thể điều chỉnh
+getgenv().TweenSpeed = 325 -- Tốc độ di chuyển, có thể điều chỉnh
 -- Variables
 local IsTweening = false
 local DefaultCameraZoom = 12.5 -- Default Roblox camera zoom
@@ -59,158 +59,50 @@ function WaitForRespawn()
 end
 
 function Tween(Pos)
-    local localPlayer = game.Players.LocalPlayer
-    local character = localPlayer.Character
-    local humanoid = character and character:FindFirstChild("Humanoid")
-    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-    
-    -- Kiểm tra character đã sẵn sàng chưa
-    if not character or not rootPart or not humanoid or humanoid.Health <= 0 then
-        print("Nhân vật chưa sẵn sàng, đang chờ hồi sinh...")
+    -- If character is dead, wait for respawn
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") or 
+       not plr.Character:FindFirstChild("Humanoid") or 
+       plr.Character.Humanoid.Health <= 0 then
+        print("Character is dead, waiting for respawn...")
         WaitForRespawn()
-        return
     end
     
-    -- Nếu đang ngồi, đứng dậy và nhảy lên để tránh bị kẹt
-    if humanoid.Sit then
-        if getgenv().CurrentTween then
-            getgenv().CurrentTween:Cancel()
+    -- Check again after possible respawn
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and 
+       plr.Character:FindFirstChild("Humanoid") and 
+       plr.Character.Humanoid.Health > 0 then
+        
+        -- Calculate distance
+        local Distance = (Pos.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+        
+        -- Make sure character is not sitting
+        if plr.Character.Humanoid.Sit == true then
+            plr.Character.Humanoid.Sit = false
         end
-        humanoid.Sit = false
-        humanoid.Jump = true
-        rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 10, 0)
-        task.wait(0.5) -- Đợi một chút để nhân vật đứng dậy hoàn toàn
-    end
-    
-    -- Kiểm tra xem có đang ở dưới nước không và điều chỉnh vị trí
-    local waterLevel = game:GetService("Workspace").Map:FindFirstChild("WaterBase-Plane")
-    if waterLevel and math.abs(rootPart.Position.Y - waterLevel.Position.Y) <= 60 then
-        rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 20, 0)
-        task.wait(0.2) -- Đợi một chút để nhân vật nổi lên khỏi mặt nước
-    end
-    
-    -- Tính toán khoảng cách và tốc độ
-    local targetPos = Pos.Position
-    local currentPos = rootPart.Position
-    local distance = (targetPos - currentPos).Magnitude
-    local tweenSpeed = getgenv().TweenSpeed or 160
-    
-    -- Đặt camera theo HumanoidRootPart để di chuyển mượt mà
-    workspace.CurrentCamera.CameraSubject = rootPart
-    
-    local tweenInfo = TweenInfo.new(
-        distance / tweenSpeed,
-        Enum.EasingStyle.Linear, -- Thay đổi từ Quad sang Linear
-        Enum.EasingDirection.Out,
-        0, 
-        false, 
-        0 
-    )
-    
-    if getgenv().CurrentTween then
-        getgenv().CurrentTween:Cancel()
-    end
-    
-    local success, err = pcall(function()
-        getgenv().CurrentTween = game:GetService("TweenService"):Create(
-            rootPart,
-            tweenInfo,
-            {CFrame = Pos}
+        
+        -- Create tween
+        local Tweeb
+        pcall(
+            function()
+                Tweeb = game:GetService("TweenService"):Create(
+                    plr.Character.HumanoidRootPart,
+                    TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
+                    {CFrame = Pos}
+                )
+            end
         )
         
-        getgenv().noclip = true
+        -- Start tween
         IsTweening = true
+        Tweeb:Play()
         
-        getgenv().CurrentTween:Play()
-    end)
-    
-    if not success then
-        workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera nếu có lỗi
-        warn("Lỗi khi tạo tween:", err)
-        IsTweening = false
-        getgenv().noclip = false
-        return
+        -- Wait for tween to complete or be cancelled
+        Tweeb.Completed:Connect(function()
+            IsTweening = false
+        end)
+    else
+        print("Character not ready for tweening")
     end
-    
-    local heartbeatConnection
-    heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not character or not character.Parent or 
-           not rootPart or not rootPart.Parent or 
-           not humanoid or humanoid.Health <= 0 then
-            IsTweening = false
-            getgenv().noclip = false
-            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
-            if getgenv().CurrentTween then 
-                getgenv().CurrentTween:Cancel() 
-            end
-            if heartbeatConnection then 
-                heartbeatConnection:Disconnect() 
-            end
-            return
-        end
-        
-        local newDistance = (targetPos - rootPart.Position).Magnitude
-        if newDistance < 10 then
-            IsTweening = false
-            getgenv().noclip = false
-            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera khi đến nơi
-            if getgenv().CurrentTween then 
-                getgenv().CurrentTween:Cancel() 
-            end
-            if heartbeatConnection then 
-                heartbeatConnection:Disconnect() 
-            end
-            rootPart.CFrame = Pos
-            return
-        end
-        
-        if getgenv().StopFarmingWhenItemsObtained and AreBothItemsObtained() then
-            print("Đã nhận đủ vật phẩm! Dừng farm...")
-            IsTweening = false
-            IsBossFarmActive = false
-            getgenv().noclip = false
-            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
-            if getgenv().CurrentTween then 
-                getgenv().CurrentTween:Cancel() 
-            end
-            if heartbeatConnection then 
-                heartbeatConnection:Disconnect() 
-            end
-            return
-        end
-        
-        if FindActiveBosses and IsTweening then
-            local activeBosses = FindActiveBosses()
-            if #activeBosses > 0 then
-                local highestPriorityBoss = activeBosses[1]
-                print(highestPriorityBoss.Info.Name .. " phát hiện! Hủy tween...")
-                IsTweening = false
-                getgenv().noclip = false
-                workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
-                if getgenv().CurrentTween then 
-                    getgenv().CurrentTween:Cancel() 
-                end
-                if heartbeatConnection then 
-                    heartbeatConnection:Disconnect() 
-                end
-                
-                if KillBoss then
-                    KillBoss(highestPriorityBoss.Boss)
-                end
-                return
-            end
-        end
-    end)
-    
-    getgenv().CurrentTween.Completed:Connect(function()
-        IsTweening = false
-        getgenv().noclip = false
-        workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera khi hoàn thành
-        if heartbeatConnection then
-            heartbeatConnection:Disconnect()
-        end
-        print("Đã đến điểm đích!")
-    end)
 end
 
 function function7()
@@ -355,6 +247,8 @@ function PullLever()
                     end
                 else
                     if currentTimeState == "Night" then
+                        -- Thêm delay nhỏ để đảm bảo thời gian đã chuyển sang đêm hoàn toàn
+                        task.wait(0.5)
                         if CollectBlueGear() then
                             print("[Auto Pull Lever] Collecting Blue Gear...")
                         end
@@ -362,6 +256,8 @@ function PullLever()
                         if currentTimeState ~= lastTimeState then  
                             print("[Auto Pull Lever] Currently on Mirage Island. Waiting for night time...")
                             lastTimeState = currentTimeState
+                            -- Thêm delay để đảm bảo không bỏ lỡ thời điểm chuyển đêm
+                            task.wait(1)
                         end
                     end
                 end
