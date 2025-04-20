@@ -93,7 +93,7 @@ function Tween(Pos)
     local targetPos = Pos.Position
     local currentPos = rootPart.Position
     local distance = (targetPos - currentPos).Magnitude
-    local tweenSpeed = getgenv().TweenSpeed or 270
+    local tweenSpeed = getgenv().TweenSpeed or 150
     
     
     local tweenInfo = TweenInfo.new(
