@@ -93,12 +93,14 @@ function Tween(Pos)
     local targetPos = Pos.Position
     local currentPos = rootPart.Position
     local distance = (targetPos - currentPos).Magnitude
-    local tweenSpeed = getgenv().TweenSpeed or 150
+    local tweenSpeed = getgenv().TweenSpeed or 160
     
+    -- Đặt camera theo HumanoidRootPart để di chuyển mượt mà
+    workspace.CurrentCamera.CameraSubject = rootPart
     
     local tweenInfo = TweenInfo.new(
         distance / tweenSpeed,
-        Enum.EasingStyle.Quad,
+        Enum.EasingStyle.Linear, -- Thay đổi từ Quad sang Linear
         Enum.EasingDirection.Out,
         0, 
         false, 
@@ -123,6 +125,7 @@ function Tween(Pos)
     end)
     
     if not success then
+        workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera nếu có lỗi
         warn("Lỗi khi tạo tween:", err)
         IsTweening = false
         getgenv().noclip = false
@@ -136,6 +139,7 @@ function Tween(Pos)
            not humanoid or humanoid.Health <= 0 then
             IsTweening = false
             getgenv().noclip = false
+            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
             if getgenv().CurrentTween then 
                 getgenv().CurrentTween:Cancel() 
             end
@@ -149,6 +153,7 @@ function Tween(Pos)
         if newDistance < 10 then
             IsTweening = false
             getgenv().noclip = false
+            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera khi đến nơi
             if getgenv().CurrentTween then 
                 getgenv().CurrentTween:Cancel() 
             end
@@ -164,6 +169,7 @@ function Tween(Pos)
             IsTweening = false
             IsBossFarmActive = false
             getgenv().noclip = false
+            workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
             if getgenv().CurrentTween then 
                 getgenv().CurrentTween:Cancel() 
             end
@@ -180,6 +186,7 @@ function Tween(Pos)
                 print(highestPriorityBoss.Info.Name .. " phát hiện! Hủy tween...")
                 IsTweening = false
                 getgenv().noclip = false
+                workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera
                 if getgenv().CurrentTween then 
                     getgenv().CurrentTween:Cancel() 
                 end
@@ -198,6 +205,7 @@ function Tween(Pos)
     getgenv().CurrentTween.Completed:Connect(function()
         IsTweening = false
         getgenv().noclip = false
+        workspace.CurrentCamera.CameraSubject = humanoid -- Đặt lại camera khi hoàn thành
         if heartbeatConnection then
             heartbeatConnection:Disconnect()
         end
