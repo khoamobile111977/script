@@ -43,7 +43,7 @@ local Door2 = 0.2
 local API_URL = "https://web-production-a0a2e.up.railway.app/mirageisland?key=khoadeptrai"
 
 -- Global settings for Tween
-getgenv().TweenSpeed = 250 -- Tốc độ di chuyển, có thể điều chỉnh
+getgenv().TweenSpeed = 200 -- Tốc độ di chuyển, có thể điều chỉnh
 -- Variables
 local IsTweening = false
 local DefaultCameraZoom = 12.5 -- Default Roblox camera zoom
