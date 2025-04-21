@@ -49,6 +49,7 @@ local IsTweening = false
 local DefaultCameraZoom = 12.5 -- Default Roblox camera zoom
 local lastTimeState = "" -- Biến để lưu trạng thái thời gian cuối cùng
 local isAtMirageIsland = false -- Biến để theo dõi xem đã ở đảo chưa
+local waitingForNight = false -- Biến để theo dõi trạng thái đợi đêm
 
 -- Functions
 function WaitForRespawn()
@@ -181,6 +182,28 @@ function TeleportToMirageIsland()
     return false
 end
 
+function WaitUntilNight()
+    if function7() ~= "Night" then
+        print("[Auto Pull Lever] Waiting for night time...")
+        waitingForNight = true
+        
+        -- Sử dụng repeat until để đợi cho đến khi trời tối
+        repeat
+            task.wait(1)
+            local currentTime = function7()
+            if currentTime == "Night" and waitingForNight then
+                print("[Auto Pull Lever] It's night time now! Starting Blue Gear collection...")
+                waitingForNight = false
+                return true
+            end
+        until currentTime == "Night" or not waitingForNight
+        
+        return currentTime == "Night"
+    else
+        return true
+    end
+end
+
 function CollectBlueGear()
     if function7() ~= "Night" then
         return false
@@ -243,7 +266,18 @@ function PullLever()
             else
                 if not isAtMirageIsland then
                     if TeleportToMirageIsland() then
-                        print("[Auto Pull Lever] Teleported to Mirage Island. " .. (currentTimeState == "Night" and "Starting Blue Gear collection..." or "Waiting for night time..."))
+                        print("[Auto Pull Lever] Teleported to Mirage Island.")
+                        -- Nếu đã ở đảo, kiểm tra thời gian và đợi đến tối nếu cần
+                        if currentTimeState ~= "Night" then
+                            -- Khởi động một luồng mới để đợi đến tối và sau đó thu thập Blue Gear
+                            spawn(function()
+                                if WaitUntilNight() then
+                                    CollectBlueGear()
+                                end
+                            end)
+                        else
+                            CollectBlueGear()
+                        end
                     end
                 else
                     if currentTimeState == "Night" then
@@ -253,11 +287,13 @@ function PullLever()
                             print("[Auto Pull Lever] Collecting Blue Gear...")
                         end
                     else
-                        if currentTimeState ~= lastTimeState then  
-                            print("[Auto Pull Lever] Currently on Mirage Island. Waiting for night time...")
-                            lastTimeState = currentTimeState
-                            -- Thêm delay để đảm bảo không bỏ lỡ thời điểm chuyển đêm
-                            task.wait(1)
+                        -- Nếu chưa đang đợi đêm, bắt đầu đợi
+                        if not waitingForNight then
+                            spawn(function()
+                                if WaitUntilNight() then
+                                    CollectBlueGear()
+                                end
+                            end)
                         end
                     end
                 end
@@ -276,6 +312,7 @@ function PullLever()
         else
             print("[Auto Pull Lever] Pull Lever Complete!")
             ResetCamera() 
+            waitingForNight = false  -- Đặt lại biến khi hoàn thành
         end
     else
         print("[Auto Pull Lever] Temple Door already open!")
@@ -314,6 +351,7 @@ end
 
 local function CleanupOnStop()
     ResetCamera() 
+    waitingForNight = false  -- Đặt lại biến khi dừng script
 end
 
 spawn(function()
