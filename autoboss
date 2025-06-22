@@ -1,23 +1,19 @@
+-- function.lua
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local Window = Fluent:CreateWindow({ Title = "Auto Rip Indra Farm", SubTitle = "by Khoa" })
+local MainTab = Window:AddTab({ Title = "Elite Hunter", Icon = "🗡️" })
+
+local Enabled = false
+MainTab:AddToggle("EnableAutoIndra", { Title = "Auto Summon Rip Indra", Default = false }, function(state)
+    Enabled = state
+end)
+
+-- Fast Attack (UltraFastAttack)
 local UltraFastAttack = {}
 local plr = game:GetService("Players").LocalPlayer
 local rs = game:GetService("ReplicatedStorage")
 local attackActive = true
 local lastTick = 0
-
--- === FLUENT UI SETUP ===
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local Window = Fluent:CreateWindow({
-    Title = "Fluent " .. Fluent.Version,
-    SubTitle = "by dawid",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = true,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "" })
-}
 
 local function GetValidTargets()
     local targets = {}
@@ -113,171 +109,87 @@ getgenv().SetAttackRange = function(range)
 end
 ToggleFastAttack(true)
 
--- === FLUENT UI BUTTON ===
-Tabs.Main:AddButton({
-    Title = "Touch Buttons Spawn Rip Indra",
-    Description = "Auto touch and activate Rip Indra buttons.",
-    Callback = function()
-        while task.wait() do
-            local btn = DetectButtons()
-            if not btn then break end
-            if btn.BrickColor.Name == "Hot pink" then
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor","Winter Sky")
-                toTarget(plr.Character.HumanoidRootPart.Position, btn.Position, btn.CFrame * CFrame.new(0,3.5,0))
-                plr.Character.Humanoid.Jump = true
-            elseif btn.BrickColor.Name == "Really red" then
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor","Pure Red")
-                toTarget(plr.Character.HumanoidRootPart.Position, btn.Position, btn.CFrame * CFrame.new(0,3.5,0))
-                plr.Character.Humanoid.Jump = true
-            elseif btn.BrickColor.Name == "Oyster" then
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor","Snow White")
-                toTarget(plr.Character.HumanoidRootPart.Position, btn.Position, btn.CFrame * CFrame.new(0,3.5,0))
-                plr.Character.Humanoid.Jump = true
+-- Tìm elite boss
+function findElite()
+    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+            if string.find(enemy.Name, "Deandre") or string.find(enemy.Name, "Urban") or string.find(enemy.Name, "Diablo") then
+                return enemy
             end
         end
     end
-})
+end
 
--- === AUTO FARM ELITE HUNTER, SUMMON & KILL RIP INDRA ===
-local function HasGodChalice()
-    -- Kiểm tra trong Backpack hoặc Inventory có God Chalice chưa
-    for _, item in ipairs(plr.Backpack:GetChildren()) do
+-- Teleport
+function tp(pos)
+    local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = pos
+    end
+end
+
+-- Tự động hop server
+function hopServer()
+    wait(3)
+    local Http = game:GetService("HttpService")
+    local Servers = Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/7449423635/servers/Public?sortOrder=Asc&limit=100"))
+    for i, v in pairs(Servers.data) do
+        if v.playing < 10 and v.id ~= game.JobId then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
+            break
+        end
+    end
+end
+
+-- Kiểm tra túi đồ có God Chalice không
+function hasGodChalice()
+    for _, item in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
         if item.Name == "God's Chalice" then
             return true
         end
     end
-    -- Có thể kiểm tra thêm trong inventory nếu game có API
-    return false
-end
-
-local function FindEliteHunter()
-    -- Tìm Elite Hunter trong workspace (có thể cần chỉnh lại tên model)
-    for _, enemy in ipairs(workspace.Enemies:GetChildren()) do
-        if enemy.Name:find("Elite Hunter") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            return enemy
-        end
-    end
-    return nil
-end
-
-local function KillEliteHunter()
-    local elite = FindEliteHunter()
-    if elite and elite:FindFirstChild("HumanoidRootPart") then
-        repeat
-            -- Dịch chuyển tới Elite Hunter
-            plr.Character.HumanoidRootPart.CFrame = elite.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-            -- Đảm bảo fast attack bật
-            getgenv().ToggleFastAttack(true)
-            task.wait(0.1)
-        until not elite or not elite:FindFirstChild("Humanoid") or elite.Humanoid.Health <= 0 or HasGodChalice()
-    end
-end
-
-local function SummonRipIndra()
-    -- Summon Rip Indra bằng God Chalice
-    -- Thường là đặt God Chalice lên bàn thờ ở Castle on the Sea
-    -- Giả sử có remote để summon (cần chỉnh lại nếu khác)
-    local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("CommF_")
-    if remote then
-        remote:InvokeServer("activateGodChalice")
-    end
-end
-
-local function FindRipIndra()
-    -- Tìm Rip Indra trong workspace
-    for _, enemy in ipairs(workspace.Enemies:GetChildren()) do
-        if enemy.Name:find("rip_indra") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            return enemy
-        end
-    end
-    return nil
-end
-
-local function KillRipIndra()
-    local indra = FindRipIndra()
-    if indra and indra:FindFirstChild("HumanoidRootPart") then
-        repeat
-            plr.Character.HumanoidRootPart.CFrame = indra.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-            getgenv().ToggleFastAttack(true)
-            task.wait(0.1)
-        until not indra or not indra:FindFirstChild("Humanoid") or indra.Humanoid.Health <= 0
-    end
-end
-
--- === AUTO HOP SERVER IF NO ELITE, NO GOD CHALICE, OR TOO MANY PLAYERS ===
-local HttpService = game:GetService("HttpService")
-local function LowPlayerServer()
-    -- Chỉ hop vào server có 1-2 người
-    for i=1,100 do
-        local servers = rs:FindFirstChild("__ServerBrowser"):InvokeServer(i)
-        for jobId, info in pairs(servers) do
-            if info.Count <= 2 and jobId ~= game.JobId then
-                rs.__ServerBrowser:InvokeServer("teleport", jobId)
-                return true
-            end
+    for _, item in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+        if item.Name == "God's Chalice" then
+            return true
         end
     end
     return false
 end
 
-local function ShouldHopServer()
-    -- Nếu không có elite, hoặc kill xong elite mà không có god chalice, hoặc server > 2 người thì hop
-    local elite = FindEliteHunter()
-    local playerCount = #game.Players:GetPlayers()
-    if not elite or playerCount > 2 then
-        return true
+-- Tìm nút triệu hồi Rip Indra
+function touchButton()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("TouchTransmitter") and v.Parent and v.Parent:IsA("Part") and v.Parent.Name == "TouchInterest" then
+            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 0)
+            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 1)
+        end
     end
-    return false
 end
 
-getgenv().AutoRipIndra = true
+-- Vòng lặp chính
 spawn(function()
-    while getgenv().AutoRipIndra do
-        if ShouldHopServer() then
-            LowPlayerServer()
-            break
-        end
-        if not HasGodChalice() then
-            KillEliteHunter()
-            if not HasGodChalice() then
-                LowPlayerServer()
-                break
+    while wait(1) do
+        if Enabled then
+            if hasGodChalice() then
+                touchButton()
+                wait(2)
+                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("SpawnIndra")
+                Enabled = false
+            else
+                local elite = findElite()
+                if elite then
+                    repeat
+                        pcall(function()
+                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(11)
+                            tp(elite.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0))
+                            ToggleFastAttack(true)
+                        end)
+                        wait()
+                    until not elite or elite.Humanoid.Health <= 0 or not Enabled
+                else
+                    hopServer()
+                end
             end
-        else
-            SummonRipIndra()
-            task.wait(2)
-            KillRipIndra()
-            -- break -- Nếu muốn lặp lại thì bỏ break
         end
-        task.wait(1)
     end
 end)
--- === END AUTO HOP SERVER ===
-
--- Utility: DetectButtons (from bananaold.lua)
-local function DetectButtons()
-    for i,v in next,game:GetService("Workspace").Map["Boat Castle"].Summoner.Circle:GetChildren() do
-        if v:IsA("Part") and v.Part.BrickColor.Name ~= "Lime green"  then
-            return v
-        end
-    end
-end
-
--- Utility: toTarget (from bananaold.lua, simplified for this context)
-local function toTarget(pos, targetPos, targetCFrame, TpInstant)
-    local plr = game:GetService("Players").LocalPlayer
-    if plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Sit then
-        plr.Character.Humanoid.Sit = false
-        plr.Character.Humanoid.Jump = true
-        plr.Character.HumanoidRootPart.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,10,0)
-        return
-    end
-    local tween_s = game:GetService("TweenService")
-    local info = TweenInfo.new((targetPos - pos).Magnitude/160, Enum.EasingStyle.Quad)
-    if (targetPos-pos).Magnitude <= 200 and not TpInstant then
-        plr.Character.HumanoidRootPart.CFrame = targetCFrame
-    else
-        local tween = tween_s:Create(plr.Character:WaitForChild("HumanoidRootPart"), info, {CFrame = targetCFrame})
-        tween:Play()
-    end
-end
