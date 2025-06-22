@@ -1,18 +1,24 @@
--- function.lua
+-- Load Fluent UI
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local Window = Fluent:CreateWindow({ Title = "Auto Rip Indra Farm", SubTitle = "by Khoa" })
 local MainTab = Window:AddTab({ Title = "Elite Hunter", Icon = "🗡️" })
 
+-- Toggle variable
 local Enabled = false
 MainTab:AddToggle("EnableAutoIndra", { Title = "Auto Summon Rip Indra", Default = false }, function(state)
     Enabled = state
 end)
 
--- Fast Attack (UltraFastAttack)
-local UltraFastAttack = {}
+-- Services
 local plr = game:GetService("Players").LocalPlayer
 local rs = game:GetService("ReplicatedStorage")
-local attackActive = true
+local workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+
+-- Fast Attack Mechanism
+local UltraFastAttack = {}
+local attackActive = false
 local lastTick = 0
 
 local function GetValidTargets()
@@ -23,7 +29,6 @@ local function GetValidTargets()
     local origin = char.HumanoidRootPart.Position
     local bodyParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso"}
     
-
     for _, target in ipairs(workspace.Enemies:GetChildren()) do
         if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
             local tRoot = target:FindFirstChild("HumanoidRootPart")
@@ -32,22 +37,6 @@ local function GetValidTargets()
                     model = target,
                     part = target:FindFirstChild(bodyParts[math.random(1, #bodyParts)]) or tRoot
                 })
-            end
-        end
-    end
-    
-
-    for _, player in ipairs(game.Players:GetPlayers()) do
-        if player ~= plr and player.Character then
-            local character = player.Character
-            if character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
-                local tRoot = character:FindFirstChild("HumanoidRootPart")
-                if tRoot and (tRoot.Position - origin).Magnitude < 50 then
-                    table.insert(targets, {
-                        model = character,
-                        part = character:FindFirstChild(bodyParts[math.random(1, #bodyParts)]) or tRoot
-                    })
-                end
             end
         end
     end
@@ -73,7 +62,7 @@ local function ExecuteAttack()
     local registerAttack = net:FindFirstChild("RE/RegisterAttack")
     local registerHit = net:FindFirstChild("RE/RegisterHit")
     if registerAttack then
-        registerAttack:FireServer(0) 
+        registerAttack:FireServer(0)
     end
     for _, target in ipairs(targets) do
         if registerHit then
@@ -86,7 +75,6 @@ local function ExecuteAttack()
                 env._G.SendHitsToServer(target.part, {{target.model, target.part}})
             end
         end
-        
         task.wait(0.01)
     end
 end
@@ -102,14 +90,38 @@ getgenv().ToggleFastAttack = function(state)
     return attackActive
 end
 
-getgenv().SetAttackRange = function(range)
-    if type(range) == "number" then
-        MAX_ATTACK_RANGE = math.clamp(range, 10, 100)
+-- Config Saving
+local Settings = {}
+local FolderName = "Banana Hub"
+local SaveFileName = plr.Name .. "-BloxFruit.json"
+
+function SaveSettings(key, value)
+    if key then
+        Settings[key] = value
+    end
+    if not isfolder(FolderName) then
+        makefolder(FolderName)
+    end
+    writefile(FolderName .. "/" .. SaveFileName, HttpService:JSONEncode(Settings))
+end
+
+function LoadSettings()
+    local success, result = pcall(function()
+        if not isfolder(FolderName) then
+            makefolder(FolderName)
+        end
+        return HttpService:JSONDecode(readfile(FolderName .. "/" .. SaveFileName))
+    end)
+    if success then
+        return result
+    else
+        SaveSettings()
+        return LoadSettings()
     end
 end
-ToggleFastAttack(true)
+Settings = LoadSettings()
 
--- Tìm elite boss
+-- Utility Functions
 function findElite()
     for _, enemy in pairs(workspace.Enemies:GetChildren()) do
         if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
@@ -120,35 +132,31 @@ function findElite()
     end
 end
 
--- Teleport
 function tp(pos)
-    local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
         hrp.CFrame = pos
     end
 end
 
--- Tự động hop server
 function hopServer()
     wait(3)
-    local Http = game:GetService("HttpService")
-    local Servers = Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/7449423635/servers/Public?sortOrder=Asc&limit=100"))
-    for i, v in pairs(Servers.data) do
+    local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/7449423635/servers/Public?sortOrder=Asc&limit=100"))
+    for _, v in pairs(Servers.data) do
         if v.playing < 10 and v.id ~= game.JobId then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id)
             break
         end
     end
 end
 
--- Kiểm tra túi đồ có God Chalice không
 function hasGodChalice()
-    for _, item in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+    for _, item in pairs(plr.Backpack:GetChildren()) do
         if item.Name == "God's Chalice" then
             return true
         end
     end
-    for _, item in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+    for _, item in pairs(plr.Character:GetChildren()) do
         if item.Name == "God's Chalice" then
             return true
         end
@@ -156,40 +164,52 @@ function hasGodChalice()
     return false
 end
 
--- Tìm nút triệu hồi Rip Indra
 function touchButton()
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("TouchTransmitter") and v.Parent and v.Parent:IsA("Part") and v.Parent.Name == "TouchInterest" then
-            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 0)
-            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 1)
+            firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 0)
+            firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 1)
         end
     end
 end
 
--- Vòng lặp chính
+-- Main Loop
 spawn(function()
     while wait(1) do
         if Enabled then
             if hasGodChalice() then
                 touchButton()
                 wait(2)
-                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("SpawnIndra")
+                rs.Remotes.CommF_:InvokeServer("SpawnIndra")
                 Enabled = false
+                SaveSettings("Enabled", false)
             else
                 local elite = findElite()
                 if elite then
                     repeat
                         pcall(function()
-                            game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(11)
+                            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                            if humanoid then
+                                humanoid:ChangeState(11) -- Noclip state
+                            end
                             tp(elite.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0))
                             ToggleFastAttack(true)
                         end)
                         wait()
                     until not elite or elite.Humanoid.Health <= 0 or not Enabled
+                    ToggleFastAttack(false)
                 else
                     hopServer()
                 end
             end
         end
     end
+end)
+
+-- Anti-AFK
+local vu = game:GetService("VirtualUser")
+plr.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
