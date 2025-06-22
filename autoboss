@@ -1,34 +1,39 @@
--- Load Fluent UI
+-- Script chính auto kill Elite + Summon Rip Indra với Fluent UI + Fast Attack
+-- File: function.lua
+
+-- Tải UI Fluent
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local Window = Fluent:CreateWindow({ Title = "Auto Rip Indra Farm", SubTitle = "by Khoa" })
-local MainTab = Window:AddTab({ Title = "Elite Hunter", Icon = "🗡️" })
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Toggle variable
-local Enabled = false
-MainTab:AddToggle("EnableAutoIndra", { Title = "Auto Summon Rip Indra", Default = false }, function(state)
-    Enabled = state
-end)
+local Window = Fluent:CreateWindow({Title = "Auto Indra Summon", SubTitle = "by Khoa", TabWidth = 160, Size = UDim2.fromOffset(500, 350), Acrylic = true})
+local Tabs = { Main = Window:AddTab({Title = "Main", Icon = "axe"}) }
+local Options = Fluent.Options
 
--- Services
+local AutoKillEnabled = false
+
+Tabs.Main:AddToggle("AutoKillElite", {
+    Title = "Auto Kill Elite & Summon Indra",
+    Default = false,
+    Callback = function(value)
+        AutoKillEnabled = value
+    end
+})
+
+-- Fast Attack logic
+local UltraFastAttack = {}
 local plr = game:GetService("Players").LocalPlayer
 local rs = game:GetService("ReplicatedStorage")
-local workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-
--- Fast Attack Mechanism
-local UltraFastAttack = {}
-local attackActive = false
+local attackActive = true
 local lastTick = 0
 
 local function GetValidTargets()
     local targets = {}
     local char = plr.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return targets end
-    
     local origin = char.HumanoidRootPart.Position
     local bodyParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso"}
-    
+
     for _, target in ipairs(workspace.Enemies:GetChildren()) do
         if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
             local tRoot = target:FindFirstChild("HumanoidRootPart")
@@ -40,34 +45,33 @@ local function GetValidTargets()
             end
         end
     end
-    
+
     return targets
 end
 
 local function ExecuteAttack()
-    if tick() - lastTick < 0.05 then return end 
+    if tick() - lastTick < 0.05 then return end
     lastTick = tick()
-    
+
     local char = plr.Character
     if not char or not char:FindFirstChildOfClass("Tool") then return end
-    
+
     local targets = GetValidTargets()
     if #targets == 0 then return end
     local modules = rs:FindFirstChild("Modules")
     if not modules then return end
-    
     local net = modules:FindFirstChild("Net")
     if not net then return end
-    
+
     local registerAttack = net:FindFirstChild("RE/RegisterAttack")
     local registerHit = net:FindFirstChild("RE/RegisterHit")
-    if registerAttack then
-        registerAttack:FireServer(0)
-    end
+    if registerAttack then registerAttack:FireServer(0) end
+
     for _, target in ipairs(targets) do
         if registerHit then
             registerHit:FireServer(target.part, {{target.model, target.part}})
         end
+
         local combatScript = plr.PlayerScripts and plr.PlayerScripts:FindFirstChildOfClass("LocalScript")
         if combatScript and getsenv then
             local success, env = pcall(getsenv, combatScript)
@@ -75,6 +79,7 @@ local function ExecuteAttack()
                 env._G.SendHitsToServer(target.part, {{target.model, target.part}})
             end
         end
+
         task.wait(0.01)
     end
 end
@@ -87,129 +92,68 @@ end)
 
 getgenv().ToggleFastAttack = function(state)
     attackActive = state ~= false
-    return attackActive
 end
 
--- Config Saving
-local Settings = {}
-local FolderName = "Banana Hub"
-local SaveFileName = plr.Name .. "-BloxFruit.json"
-
-function SaveSettings(key, value)
-    if key then
-        Settings[key] = value
-    end
-    if not isfolder(FolderName) then
-        makefolder(FolderName)
-    end
-    writefile(FolderName .. "/" .. SaveFileName, HttpService:JSONEncode(Settings))
-end
-
-function LoadSettings()
-    local success, result = pcall(function()
-        if not isfolder(FolderName) then
-            makefolder(FolderName)
-        end
-        return HttpService:JSONDecode(readfile(FolderName .. "/" .. SaveFileName))
-    end)
-    if success then
-        return result
-    else
-        SaveSettings()
-        return LoadSettings()
-    end
-end
-Settings = LoadSettings()
-
--- Utility Functions
-function findElite()
-    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
-        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            if string.find(enemy.Name, "Deandre") or string.find(enemy.Name, "Urban") or string.find(enemy.Name, "Diablo") then
-                return enemy
-            end
-        end
-    end
-end
-
-function tp(pos)
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        hrp.CFrame = pos
-    end
-end
-
-function hopServer()
-    wait(3)
-    local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/7449423635/servers/Public?sortOrder=Asc&limit=100"))
-    for _, v in pairs(Servers.data) do
-        if v.playing < 10 and v.id ~= game.JobId then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id)
-            break
-        end
-    end
-end
-
-function hasGodChalice()
-    for _, item in pairs(plr.Backpack:GetChildren()) do
-        if item.Name == "God's Chalice" then
-            return true
-        end
-    end
-    for _, item in pairs(plr.Character:GetChildren()) do
-        if item.Name == "God's Chalice" then
+-- Hàm hỗ trợ
+local function CheckGodChalice()
+    local bp = plr.Backpack
+    for _, item in pairs(bp:GetChildren()) do
+        if item.Name:lower():find("god chalice") then
             return true
         end
     end
     return false
 end
 
-function touchButton()
+local function SummonRipIndra()
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("TouchTransmitter") and v.Parent and v.Parent:IsA("Part") and v.Parent.Name == "TouchInterest" then
+        if v:IsA("TouchTransmitter") and v.Parent and v.Parent:IsA("Part") and v.Parent.Name:find("Summon") then
             firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 0)
             firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 1)
         end
     end
 end
 
--- Main Loop
-spawn(function()
-    while wait(1) do
-        if Enabled then
-            if hasGodChalice() then
-                touchButton()
-                wait(2)
-                rs.Remotes.CommF_:InvokeServer("SpawnIndra")
-                Enabled = false
-                SaveSettings("Enabled", false)
-            else
-                local elite = findElite()
-                if elite then
+local function TeleportToLowServer()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/3zKr8T0HUB/tphub/main/LowServer.lua"))()
+    end)
+end
+
+-- Auto loop
+task.spawn(function()
+    while true do
+        if AutoKillEnabled then
+            if CheckGodChalice() then
+                SummonRipIndra()
+                AutoKillEnabled = false
+                break
+            end
+
+            local eliteFound = false
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v.Name:find("Elite") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    eliteFound = true
                     repeat
                         pcall(function()
-                            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
-                            if humanoid then
-                                humanoid:ChangeState(11) -- Noclip state
-                            end
-                            tp(elite.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0))
-                            ToggleFastAttack(true)
+                            plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                         end)
-                        wait()
-                    until not elite or elite.Humanoid.Health <= 0 or not Enabled
-                    ToggleFastAttack(false)
-                else
-                    hopServer()
+                        task.wait(0.1)
+                    until not v or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0 or not AutoKillEnabled
                 end
             end
+
+            if not eliteFound then
+                task.wait(3)
+                workspace:FindFirstChild("EliteHopConfig") or Instance.new("BoolValue", workspace).Name = "EliteHopConfig"
+                TeleportToLowServer()
+            end
         end
+        task.wait(1)
     end
 end)
 
--- Anti-AFK
-local vu = game:GetService("VirtualUser")
-plr.Idled:Connect(function()
-    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    wait(1)
-    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:BuildConfigSection(Tabs.Main)
+SaveManager:LoadAutoloadConfig()
