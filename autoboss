@@ -1,24 +1,5 @@
--- Script chính auto kill Elite + Summon Rip Indra với Fluent UI + Fast Attack
+-- Script auto kill Elite + Summon Rip Indra với Fast Attack
 -- File: function.lua
-
--- Tải UI Fluent
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-
-local Window = Fluent:CreateWindow({Title = "Auto Indra Summon", SubTitle = "by Khoa", TabWidth = 160, Size = UDim2.fromOffset(500, 350), Acrylic = true})
-local Tabs = { Main = Window:AddTab({Title = "Main", Icon = "axe"}) }
-local Options = Fluent.Options
-
-local AutoKillEnabled = false
-
-Tabs.Main:AddToggle("AutoKillElite", {
-    Title = "Auto Kill Elite & Summon Indra",
-    Default = false,
-    Callback = function(value)
-        AutoKillEnabled = value
-    end
-})
 
 -- Fast Attack logic
 local UltraFastAttack = {}
@@ -121,39 +102,36 @@ local function TeleportToLowServer()
 end
 
 -- Auto loop
+getgenv().StartAutoIndra = true
+ToggleFastAttack(true)
+
 task.spawn(function()
-    while true do
-        if AutoKillEnabled then
-            if CheckGodChalice() then
-                SummonRipIndra()
-                AutoKillEnabled = false
-                break
-            end
+    while getgenv().StartAutoIndra do
+        if CheckGodChalice() then
+            SummonRipIndra()
+            getgenv().StartAutoIndra = false
+            break
+        end
 
-            local eliteFound = false
-            for _, v in pairs(workspace.Enemies:GetChildren()) do
-                if v.Name:find("Elite") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                    eliteFound = true
-                    repeat
-                        pcall(function()
-                            plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        end)
-                        task.wait(0.1)
-                    until not v or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0 or not AutoKillEnabled
-                end
-            end
-
-            if not eliteFound then
-                task.wait(3)
-                workspace:FindFirstChild("EliteHopConfig") or Instance.new("BoolValue", workspace).Name = "EliteHopConfig"
-                TeleportToLowServer()
+        local eliteFound = false
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v.Name:find("Elite") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                eliteFound = true
+                repeat
+                    pcall(function()
+                        plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    end)
+                    task.wait(0.1)
+                until not v or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0 or not getgenv().StartAutoIndra
             end
         end
+
+        if not eliteFound then
+            task.wait(3)
+            workspace:FindFirstChild("EliteHopConfig") or Instance.new("BoolValue", workspace).Name = "EliteHopConfig"
+            TeleportToLowServer()
+        end
+
         task.wait(1)
     end
 end)
-
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
-SaveManager:BuildConfigSection(Tabs.Main)
-SaveManager:LoadAutoloadConfig()
