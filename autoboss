@@ -1,10 +1,91 @@
--- Script auto kill Elite + Summon Rip Indra với Fast Attack
--- File: function.lua
+-- Fluent UI + Auto Elite to Rip Indra Script
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- Fast Attack logic
-local UltraFastAttack = {}
-local plr = game:GetService("Players").LocalPlayer
-local rs = game:GetService("ReplicatedStorage")
+-- Create Window
+local Window = Fluent:CreateWindow({
+    Title = "Elite Hunter Script",
+    SubTitle = "by Elite",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- Create Tabs
+local MainTab = Window:AddTab({
+    Title = "Main",
+    Icon = "home"
+})
+
+local SettingsTab = Window:AddTab({
+    Title = "Settings", 
+    Icon = "settings"
+})
+
+-- Variables
+local plr = game.Players.LocalPlayer
+getgenv().TweenSpeed = 325
+getgenv().AutoMainAccount = false
+getgenv().StopFarmingWhenItemsObtained = false
+getgenv().SelectedWeapon = "Combat"
+
+-- Main Functions (from your original script)
+function DetectButtons()
+    for i,v in next,game:GetService("Workspace").Map["Boat Castle"].Summoner.Circle:GetChildren() do
+        if v:IsA("Part") and v.Part.BrickColor.Name ~= "Lime green"  then
+            return v
+        end
+    end
+end
+
+-- Hop Server Function (less player)
+function HopServer()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
+    
+    Fluent:Notify({
+        Title = "Server Hop",
+        Content = "Đang tìm server có ít người chơi hơn...",
+        Duration = 3
+    })
+    
+    pcall(function()
+        local response = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+        local servers = HttpService:JSONDecode(response)
+        
+        local currentPlayerCount = #game.Players:GetPlayers()
+        local bestServer = nil
+        local lowestPlayerCount = currentPlayerCount
+        
+        for _, server in pairs(servers.data) do
+            if server.id ~= JobId and server.playing < lowestPlayerCount and server.playing > 0 then
+                bestServer = server
+                lowestPlayerCount = server.playing
+            end
+        end
+        
+        if bestServer then
+            Fluent:Notify({
+                Title = "Server Found",
+                Content = "Tìm thấy server tốt hơn với " .. bestServer.playing .. " người chơi",
+                Duration = 5
+            })
+            TeleportService:TeleportToPlaceInstance(PlaceId, bestServer.id, plr)
+        else
+            Fluent:Notify({
+                Title = "Random Hop",
+                Content = "Không tìm thấy server tốt hơn, thử hop ngẫu nhiên...",
+                Duration = 3
+            })
+            TeleportService:Teleport(PlaceId, plr)
+        end
+    end)
+end
+
+-- Fast Attack System
 local attackActive = true
 local lastTick = 0
 
@@ -12,9 +93,10 @@ local function GetValidTargets()
     local targets = {}
     local char = plr.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return targets end
+    
     local origin = char.HumanoidRootPart.Position
     local bodyParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso"}
-
+    
     for _, target in ipairs(workspace.Enemies:GetChildren()) do
         if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
             local tRoot = target:FindFirstChild("HumanoidRootPart")
@@ -26,41 +108,38 @@ local function GetValidTargets()
             end
         end
     end
-
+    
     return targets
 end
 
 local function ExecuteAttack()
-    if tick() - lastTick < 0.05 then return end
+    if tick() - lastTick < 0.05 then return end 
     lastTick = tick()
-
+    
     local char = plr.Character
     if not char or not char:FindFirstChildOfClass("Tool") then return end
-
+    
     local targets = GetValidTargets()
     if #targets == 0 then return end
+    
+    local rs = game:GetService("ReplicatedStorage")
     local modules = rs:FindFirstChild("Modules")
     if not modules then return end
+    
     local net = modules:FindFirstChild("Net")
     if not net then return end
-
+    
     local registerAttack = net:FindFirstChild("RE/RegisterAttack")
     local registerHit = net:FindFirstChild("RE/RegisterHit")
-    if registerAttack then registerAttack:FireServer(0) end
-
+    
+    if registerAttack then
+        registerAttack:FireServer(0) 
+    end
+    
     for _, target in ipairs(targets) do
         if registerHit then
             registerHit:FireServer(target.part, {{target.model, target.part}})
         end
-
-        local combatScript = plr.PlayerScripts and plr.PlayerScripts:FindFirstChildOfClass("LocalScript")
-        if combatScript and getsenv then
-            local success, env = pcall(getsenv, combatScript)
-            if success and env and env._G and env._G.SendHitsToServer then
-                env._G.SendHitsToServer(target.part, {{target.model, target.part}})
-            end
-        end
-
         task.wait(0.01)
     end
 end
@@ -73,65 +152,296 @@ end)
 
 getgenv().ToggleFastAttack = function(state)
     attackActive = state ~= false
+    return attackActive
 end
 
--- Hàm hỗ trợ
-local function CheckGodChalice()
-    local bp = plr.Backpack
-    for _, item in pairs(bp:GetChildren()) do
-        if item.Name:lower():find("god chalice") then
-            return true
-        end
-    end
-    return false
-end
+-- Elite Hunter Functions
+local TableEliteHunter = {
+    "Deandre [Lv. 1750]",
+    "Urban [Lv. 1750]",
+    "Diablo [Lv. 1750]",
+}
 
-local function SummonRipIndra()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("TouchTransmitter") and v.Parent and v.Parent:IsA("Part") and v.Parent.Name:find("Summon") then
-            firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 0)
-            firetouchinterest(plr.Character.HumanoidRootPart, v.Parent, 1)
-        end
+function AutoHaki()
+    if not plr.Character:FindFirstChild("HasBuso") then
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
     end
 end
 
-local function TeleportToLowServer()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/3zKr8T0HUB/tphub/main/LowServer.lua"))()
+function EquipWeapon(weaponName)
+    if plr.Backpack:FindFirstChild(weaponName) then
+        plr.Character.Humanoid:EquipTool(plr.Backpack:FindFirstChild(weaponName))
+    end
+end
+
+function DetectEliteHunter()
+    for i,v in next,game:GetService("ReplicatedStorage"):GetChildren() do
+        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v 
+        end
+    end
+    for i,v in next,game:GetService("Workspace").Enemies:GetChildren() do
+        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v 
+        end
+    end
+end
+
+function HasGodChalice()
+    return plr.Backpack:FindFirstChild("God's Chalice") or plr.Character:FindFirstChild("God's Chalice")
+end
+
+function ToTarget(targetCFrame)
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local Distance = (targetCFrame.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+    
+    if plr.Character.Humanoid.Sit then
+        plr.Character.Humanoid.Sit = false
+    end
+    
+    if Distance <= 350 then
+        plr.Character.HumanoidRootPart.CFrame = targetCFrame
+    else
+        local Tween = game:GetService("TweenService"):Create(
+            plr.Character.HumanoidRootPart,
+            TweenInfo.new(Distance / getgenv().TweenSpeed, Enum.EasingStyle.Linear),
+            {CFrame = targetCFrame}
+        )
+        Tween:Play()
+    end
+end
+
+function sizepart(v)
+    if not v or not v:FindFirstChild("HumanoidRootPart") then return end
+    
+    v.HumanoidRootPart.CanCollide = false
+    
+    for i,x in next,v:GetDescendants() do 
+        if (x:IsA("Part") or x:IsA("MeshPart")) and x.CanCollide then 
+            x.CanCollide = false 
+        end
+    end
+    
+    if not v.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+        local lock = Instance.new("BodyVelocity")
+        lock.Parent = v.HumanoidRootPart
+        lock.MaxForce = Vector3.new(100000, 100000, 100000)
+        lock.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+-- Main Auto Functions
+function AutoKillEliteHopUntilGodChalice()
+    while getgenv().AutoMainAccount and not HasGodChalice() do
+        local elite = DetectEliteHunter()
+        
+        if elite then
+            Fluent:Notify({
+                Title = "Elite Found",
+                Content = "Đã tìm thấy " .. elite.Name,
+                Duration = 3
+            })
+            
+            -- Take quest if not taken
+            if not string.find(plr.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text, elite.Name:gsub(" %pLv. %d+%p", ""))
+                or not plr.PlayerGui.Main.Quest.Visible then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest")
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EliteHunter")
+            end
+            
+            -- Attack elite
+            repeat task.wait()
+                if not getgenv().AutoMainAccount then break end
+                
+                sizepart(elite)
+                ToTarget(elite.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0))
+                
+                if (plr.Character.HumanoidRootPart.Position - elite.HumanoidRootPart.Position).Magnitude < 50 then
+                    AutoHaki()
+                    EquipWeapon(getgenv().SelectedWeapon)
+                    ToggleFastAttack(true)
+                end
+                
+            until not elite or not elite.Parent or elite.Humanoid.Health <= 0 or HasGodChalice() or not getgenv().AutoMainAccount
+            
+        else
+            -- No elite found, hop server
+            if not HasGodChalice() and getgenv().AutoMainAccount then
+                HopServer()
+                task.wait(10) -- Wait for server hop
+            end
+        end
+        
+        task.wait(1)
+    end
+end
+
+function AutoTouchButtonSpawnRipIndra()
+    while getgenv().AutoMainAccount and HasGodChalice() do
+        local btn = DetectButtons()
+        
+        if btn then
+            Fluent:Notify({
+                Title = "Button Found",
+                Content = "Đang nhấn nút " .. btn.BrickColor.Name,
+                Duration = 2
+            })
+            
+            if btn.BrickColor.Name == "Hot pink" then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor", "Winter Sky")
+            elseif btn.BrickColor.Name == "Really red" then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor", "Pure Red")
+            elseif btn.BrickColor.Name == "Oyster" then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("activateColor", "Snow White")
+            end
+            
+            ToTarget(btn.CFrame * CFrame.new(0, 3.5, 0))
+            plr.Character.Humanoid.Jump = true
+            
+        else
+            Fluent:Notify({
+                Title = "Complete",
+                Content = "Đã hoàn thành summon Rip Indra!",
+                Duration = 5
+            })
+            break
+        end
+        
+        task.wait(0.5)
+    end
+end
+
+function StartAutoEliteToRipIndra()
+    task.spawn(function()
+        while getgenv().AutoMainAccount do
+            -- Step 1: Farm Elite until God Chalice
+            if not HasGodChalice() then
+                AutoKillEliteHopUntilGodChalice()
+            end
+            
+            -- Step 2: Summon Rip Indra when have God Chalice
+            if HasGodChalice() and getgenv().AutoMainAccount then
+                AutoTouchButtonSpawnRipIndra()
+                break -- Complete
+            end
+            
+            task.wait(1)
+        end
     end)
 end
 
--- Auto loop
-getgenv().StartAutoIndra = true
-ToggleFastAttack(true)
+-- UI Elements
+local MainSection = MainTab:AddSection("Auto Farm")
 
-task.spawn(function()
-    while getgenv().StartAutoIndra do
-        if CheckGodChalice() then
-            SummonRipIndra()
-            getgenv().StartAutoIndra = false
-            break
-        end
+local AutoMainToggle = MainTab:AddToggle("AutoMain", {
+    Title = "Auto Main Account",
+    Description = "Tự động farm Elite và summon Rip Indra",
+    Default = false
+})
 
-        local eliteFound = false
-        for _, v in pairs(workspace.Enemies:GetChildren()) do
-            if v.Name:find("Elite") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                eliteFound = true
-                repeat
-                    pcall(function()
-                        plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                    end)
-                    task.wait(0.1)
-                until not v or not v:FindFirstChild("Humanoid") or v.Humanoid.Health <= 0 or not getgenv().StartAutoIndra
-            end
-        end
-
-        if not eliteFound then
-            task.wait(3)
-            workspace:FindFirstChild("EliteHopConfig") or Instance.new("BoolValue", workspace).Name = "EliteHopConfig"
-            TeleportToLowServer()
-        end
-
-        task.wait(1)
+AutoMainToggle:OnChanged(function(Value)
+    getgenv().AutoMainAccount = Value
+    
+    if Value then
+        Fluent:Notify({
+            Title = "Auto Main Started",
+            Content = "Đã bắt đầu auto farm cho tài khoản chính!",
+            Duration = 3
+        })
+        StartAutoEliteToRipIndra()
+    else
+        Fluent:Notify({
+            Title = "Auto Main Stopped", 
+            Content = "Đã dừng auto farm!",
+            Duration = 3
+        })
+        ToggleFastAttack(false)
     end
 end)
+
+-- Settings Section
+local SettingsSection = SettingsTab:AddSection("Configuration")
+
+local WeaponDropdown = SettingsTab:AddDropdown("WeaponSelect", {
+    Title = "Select Weapon",
+    Description = "Chọn vũ khí để farm",
+    Values = {"Combat", "Sword", "Blox Fruit", "Gun"},
+    Multi = false,
+    Default = 1,
+})
+
+WeaponDropdown:OnChanged(function(Value)
+    getgenv().SelectedWeapon = Value
+    Fluent:Notify({
+        Title = "Weapon Changed",
+        Content = "Đã chọn vũ khí: " .. Value,
+        Duration = 2
+    })
+end)
+
+local SpeedSlider = SettingsTab:AddSlider("TweenSpeed", {
+    Title = "Tween Speed",
+    Description = "Tốc độ di chuyển (khuyến nghị: 300-350)",
+    Default = 325,
+    Min = 100,
+    Max = 500,
+    Rounding = 1,
+    Callback = function(Value)
+        getgenv().TweenSpeed = Value
+    end
+})
+
+-- Status Section  
+local StatusSection = MainTab:AddSection("Status")
+
+local StatusParagraph = MainTab:AddParagraph({
+    Title = "Current Status",
+    Content = "Chưa bắt đầu"
+})
+
+-- Update status every 3 seconds
+task.spawn(function()
+    while true do
+        local status = "Đang chờ..."
+        
+        if getgenv().AutoMainAccount then
+            if HasGodChalice() then
+                status = "✅ Có God Chalice - Đang summon Rip Indra"
+            else
+                local elite = DetectEliteHunter()
+                if elite then
+                    status = "⚔️ Đang farm: " .. elite.Name
+                else
+                    status = "🔄 Đang tìm Elite hoặc hop server"
+                end
+            end
+        else
+            status = "❌ Auto đã tắt"
+        end
+        
+        StatusParagraph:SetDesc(status)
+        task.wait(3)
+    end
+end)
+
+-- Misc Section
+local MiscSection = SettingsTab:AddSection("Miscellaneous")
+
+local HopButton = SettingsTab:AddButton({
+    Title = "Hop Server",
+    Description = "Tìm server có ít người chơi hơn",
+    Callback = function()
+        HopServer()
+    end
+})
+
+-- Initialize
+Fluent:Notify({
+    Title = "Script Loaded",
+    Content = "Elite Hunter Script đã được tải thành công!",
+    Duration = 5
+})
+
+-- Enable fast attack by default
+ToggleFastAttack(true)
