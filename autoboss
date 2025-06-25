@@ -1,3 +1,35 @@
+repeat
+    task.wait()
+until game:IsLoaded()
+
+function setTeam(teamName)
+    local args = {
+        [1] = "SetTeam",
+        [2] = teamName
+    }
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+end
+
+_G.Select_Marines = true
+
+spawn(function()
+    while wait() do
+        if _G.Select_Pirates then
+            setTeam("Pirates")
+            _G.Select_Pirates = false  
+            break
+        end
+    end
+end)
+spawn(function()
+    while wait() do
+        if _G.Select_Marines then
+            setTeam("Marines")
+            _G.Select_Marines = false  
+            break
+        end
+    end
+end)
 -- Fluent UI + Auto Elite to Rip Indra Script
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -175,16 +207,19 @@ function EquipWeapon(weaponName)
 end
 
 function DetectEliteHunter()
-    for i,v in next,game:GetService("ReplicatedStorage"):GetChildren() do
-        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-            return v 
-        end
-    end
+    -- Ưu tiên tìm trong workspace.Enemies
     for i,v in next,game:GetService("Workspace").Enemies:GetChildren() do
         if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-            return v 
+            return v, v.HumanoidRootPart and v.HumanoidRootPart.CFrame or v:GetPivot()
         end
     end
+    -- Nếu chưa có, tìm trong ReplicatedStorage
+    for i,v in next,game:GetService("ReplicatedStorage"):GetChildren() do
+        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) then
+            return v, v:GetPivot()
+        end
+    end
+    return nil, nil
 end
 
 function HasGodChalice()
@@ -234,45 +269,54 @@ end
 -- Main Auto Functions
 function AutoKillEliteHopUntilGodChalice()
     while getgenv().AutoMainAccount and not HasGodChalice() do
-        local elite = DetectEliteHunter()
-        
-        if elite then
+        local elite, eliteCFrame = DetectEliteHunter()
+        if elite and eliteCFrame then
             Fluent:Notify({
                 Title = "Elite Found",
                 Content = "Đã tìm thấy " .. elite.Name,
                 Duration = 3
             })
-            
-            -- Take quest if not taken
+            -- Nhận quest nếu chưa có
             if not string.find(plr.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text, elite.Name:gsub(" %pLv. %d+%p", ""))
                 or not plr.PlayerGui.Main.Quest.Visible then
                 game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest")
                 game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EliteHunter")
             end
-            
-            -- Attack elite
-            repeat task.wait()
-                if not getgenv().AutoMainAccount then break end
-                
-                sizepart(elite)
-                ToTarget(elite.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0))
-                
-                if (plr.Character.HumanoidRootPart.Position - elite.HumanoidRootPart.Position).Magnitude < 50 then
-                    AutoHaki()
-                    EquipWeapon(getgenv().SelectedWeapon)
-                    ToggleFastAttack(true)
-                end
-                
-            until not elite or not elite.Parent or elite.Humanoid.Health <= 0 or HasGodChalice() or not getgenv().AutoMainAccount
-            
+            -- Nếu elite ở ReplicatedStorage (chưa có HumanoidRootPart), tween đến vị trí spawn
+            if elite.Parent == game:GetService("ReplicatedStorage") then
+                repeat
+                    if not getgenv().AutoMainAccount or HasGodChalice() then break end
+                    ToTarget(eliteCFrame)
+                    task.wait(0.5)
+                    -- Kiểm tra nếu elite đã chuyển sang workspace.Enemies
+                    local newElite, newCFrame = DetectEliteHunter()
+                    if newElite and newElite.Parent == game:GetService("Workspace").Enemies then
+                        elite = newElite
+                        eliteCFrame = newCFrame
+                        break
+                    end
+                until not elite or not getgenv().AutoMainAccount or HasGodChalice()
+            end
+            -- Nếu elite đã ở workspace.Enemies, thực hiện kill
+            if elite and elite.Parent == game:GetService("Workspace").Enemies then
+                repeat task.wait()
+                    if not getgenv().AutoMainAccount or HasGodChalice() then break end
+                    sizepart(elite)
+                    ToTarget(elite.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0))
+                    if (plr.Character.HumanoidRootPart.Position - elite.HumanoidRootPart.Position).Magnitude < 50 then
+                        AutoHaki()
+                        EquipWeapon(getgenv().SelectedWeapon)
+                        ToggleFastAttack(true)
+                    end
+                until not elite or not elite.Parent or elite.Humanoid.Health <= 0 or HasGodChalice() or not getgenv().AutoMainAccount
+            end
         else
-            -- No elite found, hop server
+            -- Không có elite, hop server nếu chưa có god chalice
             if not HasGodChalice() and getgenv().AutoMainAccount then
                 HopServer()
                 task.wait(10) -- Wait for server hop
             end
         end
-        
         task.wait(1)
     end
 end
@@ -409,7 +453,7 @@ task.spawn(function()
             if HasGodChalice() then
                 status = "✅ Có God Chalice - Đang summon Rip Indra"
             else
-                local elite = DetectEliteHunter()
+                local elite, eliteCFrame = DetectEliteHunter()
                 if elite then
                     status = "⚔️ Đang farm: " .. elite.Name
                 else
