@@ -207,16 +207,16 @@ function EquipWeapon(weaponName)
 end
 
 function DetectEliteHunter()
-    -- Ưu tiên tìm trong workspace.Enemies
+    -- Ưu tiên tìm trong ReplicatedStorage trước
+    for i,v in next,game:GetService("ReplicatedStorage"):GetChildren() do
+        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v, v:GetPivot()
+        end
+    end
+    -- Sau đó mới tìm trong workspace.Enemies
     for i,v in next,game:GetService("Workspace").Enemies:GetChildren() do
         if v:IsA("Model") and table.find(TableEliteHunter,v.Name) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
             return v, v.HumanoidRootPart and v.HumanoidRootPart.CFrame or v:GetPivot()
-        end
-    end
-    -- Nếu chưa có, tìm trong ReplicatedStorage
-    for i,v in next,game:GetService("ReplicatedStorage"):GetChildren() do
-        if v:IsA("Model") and table.find(TableEliteHunter,v.Name) then
-            return v, v:GetPivot()
         end
     end
     return nil, nil
@@ -286,7 +286,12 @@ function AutoKillEliteHopUntilGodChalice()
             if elite.Parent == game:GetService("ReplicatedStorage") then
                 repeat
                     if not getgenv().AutoMainAccount or HasGodChalice() then break end
-                    ToTarget(eliteCFrame)
+                    -- Chỉ tween đến vị trí GetPivot (Position)
+                    if typeof(eliteCFrame) == "CFrame" then
+                        ToTarget(eliteCFrame)
+                    elseif typeof(eliteCFrame) == "Vector3" then
+                        ToTarget(CFrame.new(eliteCFrame))
+                    end
                     task.wait(0.5)
                     -- Kiểm tra nếu elite đã chuyển sang workspace.Enemies
                     local newElite, newCFrame = DetectEliteHunter()
@@ -301,12 +306,14 @@ function AutoKillEliteHopUntilGodChalice()
             if elite and elite.Parent == game:GetService("Workspace").Enemies then
                 repeat task.wait()
                     if not getgenv().AutoMainAccount or HasGodChalice() then break end
-                    sizepart(elite)
-                    ToTarget(elite.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0))
-                    if (plr.Character.HumanoidRootPart.Position - elite.HumanoidRootPart.Position).Magnitude < 50 then
-                        AutoHaki()
-                        EquipWeapon(getgenv().SelectedWeapon)
-                        ToggleFastAttack(true)
+                    if elite:FindFirstChild("HumanoidRootPart") then
+                        sizepart(elite)
+                        ToTarget(elite.HumanoidRootPart.CFrame * CFrame.new(7, 20, 0))
+                        if (plr.Character.HumanoidRootPart.Position - elite.HumanoidRootPart.Position).Magnitude < 50 then
+                            AutoHaki()
+                            EquipWeapon(getgenv().SelectedWeapon)
+                            ToggleFastAttack(true)
+                        end
                     end
                 until not elite or not elite.Parent or elite.Humanoid.Health <= 0 or HasGodChalice() or not getgenv().AutoMainAccount
             end
