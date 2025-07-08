@@ -1,3 +1,8 @@
+-- Blox Fruits Server Hopper Script
+-- Hop vào server có ít người (1-2 người)
+-- Tính năng nhập Job ID và tự join
+-- UI ở phía trên giữa màn hình
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -17,7 +22,7 @@ screenGui.ResetOnSpawn = false
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 400, 0, 200)
-mainFrame.Position = UDim2.new(0.5, -200, 0, 10) 
+mainFrame.Position = UDim2.new(0.5, -200, 0, 10) -- Phía trên giữa màn hình
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
@@ -98,7 +103,7 @@ serverHopBtn.Size = UDim2.new(0, 180, 0, 40)
 serverHopBtn.Position = UDim2.new(0, 10, 0, 90)
 serverHopBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
 serverHopBtn.BorderSizePixel = 0
-serverHopBtn.Text = "🔄 Hop Server"
+serverHopBtn.Text = "🚀 Hop Server "
 serverHopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 serverHopBtn.TextScaled = true
 serverHopBtn.Font = Enum.Font.GothamBold
@@ -120,62 +125,11 @@ statusLabel.TextScaled = true
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.Parent = mainFrame
 
--- Toggle Button
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "ToggleBtn"
-toggleBtn.Size = UDim2.new(0, 380, 0, 30)
-toggleBtn.Position = UDim2.new(0, 10, 0, 140)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
-toggleBtn.BorderSizePixel = 0
-toggleBtn.Text = "🔥 Auto Hop ON"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextScaled = true
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.Parent = mainFrame
-
-local toggleBtnCorner = Instance.new("UICorner")
-toggleBtnCorner.CornerRadius = UDim.new(0, 5)
-toggleBtnCorner.Parent = toggleBtn
+-- Resize frame cho gọn hơn
+mainFrame.Size = UDim2.new(0, 400, 0, 140)
 
 -- Biến điều khiển
-local autoHopEnabled = false
 local isHopping = false
-local configFileName = "ServerHopperConfig.json"
-
--- Hàm lưu config
-local function saveConfig()
-    local config = {
-        autoHopEnabled = autoHopEnabled
-    }
-    local success, error = pcall(function()
-        writefile(configFileName, HttpService:JSONEncode(config))
-    end)
-    if success then
-        print("✅ Config đã được lưu!")
-    else
-        print("❌ Lỗi lưu config:", error)
-    end
-end
-
--- Hàm load config
-local function loadConfig()
-    local success, result = pcall(function()
-        if isfile(configFileName) then
-            local configData = readfile(configFileName)
-            return HttpService:JSONDecode(configData)
-        end
-        return nil
-    end)
-    
-    if success and result then
-        autoHopEnabled = result.autoHopEnabled or false
-        print("✅ Config đã được tải!")
-        return true
-    else
-        print("📁 Không tìm thấy config, sử dụng cài đặt mặc định")
-        return false
-    end
-end
 
 -- Hàm lấy Job ID hiện tại
 local function getCurrentJobId()
@@ -358,4 +312,3 @@ title.InputChanged:Connect(function(input)
         end
     end
 end)
-
