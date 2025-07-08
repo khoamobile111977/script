@@ -1,0 +1,343 @@
+// Server Hopping Script với Job ID
+// Chỉ hop vào server có 1-2 người chơi
+
+class ServerHopper {
+    constructor() {
+        this.isHopping = false;
+        this.targetPlayers = [1, 2]; // Server có 1 hoặc 2 người
+        this.hopInterval = 3000; // 3 giây giữa mỗi lần hop
+        this.createUI();
+    }
+
+    createUI() {
+        // Tạo UI container
+        const uiContainer = document.createElement('div');
+        uiContainer.id = 'server-hopper-ui';
+        uiContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            color: white;
+            z-index: 9999;
+            min-width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        `;
+
+        // Title
+        const title = document.createElement('h3');
+        title.textContent = 'Server Hopper';
+        title.style.cssText = `
+            margin: 0 0 10px 0;
+            color: #00ff00;
+            font-size: 16px;
+        `;
+
+        // Job ID Input Section
+        const jobIdSection = document.createElement('div');
+        jobIdSection.style.cssText = `
+            margin-bottom: 10px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        `;
+
+        const jobIdInput = document.createElement('input');
+        jobIdInput.id = 'job-id-input';
+        jobIdInput.type = 'text';
+        jobIdInput.placeholder = 'Nhập Job ID...';
+        jobIdInput.style.cssText = `
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        `;
+
+        // Auto join khi nhập job ID
+        jobIdInput.addEventListener('input', (e) => {
+            const jobId = e.target.value.trim();
+            if (jobId) {
+                this.joinJobId(jobId);
+            }
+        });
+
+        // Copy Job ID Button
+        const copyJobIdBtn = document.createElement('button');
+        copyJobIdBtn.textContent = 'Copy Job ID';
+        copyJobIdBtn.style.cssText = `
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        `;
+        copyJobIdBtn.addEventListener('click', () => this.copyCurrentJobId());
+
+        // Server Info
+        const serverInfo = document.createElement('div');
+        serverInfo.id = 'server-info';
+        serverInfo.style.cssText = `
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #ccc;
+        `;
+
+        // Control Buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        `;
+
+        const startBtn = document.createElement('button');
+        startBtn.id = 'start-hop-btn';
+        startBtn.textContent = 'Bắt đầu Hop';
+        startBtn.style.cssText = `
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        startBtn.addEventListener('click', () => this.toggleHopping());
+
+        const stopBtn = document.createElement('button');
+        stopBtn.id = 'stop-hop-btn';
+        stopBtn.textContent = 'Dừng Hop';
+        stopBtn.style.cssText = `
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        stopBtn.addEventListener('click', () => this.stopHopping());
+
+        // Assemble UI
+        jobIdSection.appendChild(jobIdInput);
+        jobIdSection.appendChild(copyJobIdBtn);
+        buttonContainer.appendChild(startBtn);
+        buttonContainer.appendChild(stopBtn);
+        
+        uiContainer.appendChild(title);
+        uiContainer.appendChild(jobIdSection);
+        uiContainer.appendChild(serverInfo);
+        uiContainer.appendChild(buttonContainer);
+
+        // Add to page
+        document.body.appendChild(uiContainer);
+
+        // Update server info
+        this.updateServerInfo();
+    }
+
+    updateServerInfo() {
+        const serverInfoDiv = document.getElementById('server-info');
+        if (!serverInfoDiv) return;
+
+        try {
+            // Thử lấy thông tin server từ Roblox
+            const players = game?.Players;
+            const currentPlayers = players ? players.NumPlayers : 0;
+            const maxPlayers = players ? players.MaxPlayers : 0;
+            const jobId = game?.JobId || 'Không có';
+
+            serverInfoDiv.innerHTML = `
+                <div>Người chơi: ${currentPlayers}/${maxPlayers}</div>
+                <div>Job ID: ${jobId.substring(0, 8)}...</div>
+            `;
+        } catch (error) {
+            serverInfoDiv.innerHTML = `
+                <div>Không thể lấy thông tin server</div>
+                <div>Job ID: Không có</div>
+            `;
+        }
+    }
+
+    async joinJobId(jobId) {
+        try {
+            console.log(`Đang join Job ID: ${jobId}`);
+            
+            // Sử dụng TeleportService để join job ID
+            if (typeof game !== 'undefined' && game.GetService) {
+                const TeleportService = game.GetService('TeleportService');
+                const Players = game.GetService('Players');
+                const placeId = game.PlaceId;
+                
+                TeleportService.TeleportToPlaceInstance(placeId, jobId, Players.LocalPlayer);
+            } else {
+                console.log('Không thể truy cập TeleportService');
+            }
+        } catch (error) {
+            console.error('Lỗi khi join Job ID:', error);
+        }
+    }
+
+    async copyCurrentJobId() {
+        try {
+            const jobId = game?.JobId || 'Không có Job ID';
+            
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(jobId);
+                console.log('Đã copy Job ID:', jobId);
+                
+                // Hiển thị thông báo
+                this.showNotification('Đã copy Job ID!');
+            } else {
+                // Fallback cho browser cũ
+                const textArea = document.createElement('textarea');
+                textArea.value = jobId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                this.showNotification('Đã copy Job ID!');
+            }
+        } catch (error) {
+            console.error('Lỗi khi copy Job ID:', error);
+            this.showNotification('Lỗi khi copy Job ID!');
+        }
+    }
+
+    showNotification(message) {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 10000;
+            font-size: 14px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 2000);
+    }
+
+    async toggleHopping() {
+        if (this.isHopping) {
+            this.stopHopping();
+        } else {
+            this.startHopping();
+        }
+    }
+
+    async startHopping() {
+        this.isHopping = true;
+        const startBtn = document.getElementById('start-hop-btn');
+        if (startBtn) {
+            startBtn.textContent = 'Đang Hop...';
+            startBtn.style.background = '#ffc107';
+        }
+
+        console.log('Bắt đầu server hopping...');
+        
+        while (this.isHopping) {
+            try {
+                await this.hopToNextServer();
+                await this.sleep(this.hopInterval);
+            } catch (error) {
+                console.error('Lỗi khi hop server:', error);
+                await this.sleep(this.hopInterval);
+            }
+        }
+    }
+
+    stopHopping() {
+        this.isHopping = false;
+        const startBtn = document.getElementById('start-hop-btn');
+        if (startBtn) {
+            startBtn.textContent = 'Bắt đầu Hop';
+            startBtn.style.background = '#28a745';
+        }
+        console.log('Đã dừng server hopping');
+    }
+
+    async hopToNextServer() {
+        try {
+            if (typeof game !== 'undefined' && game.GetService) {
+                const TeleportService = game.GetService('TeleportService');
+                const Players = game.GetService('Players');
+                const HttpService = game.GetService('HttpService');
+                
+                // Lấy danh sách server
+                const placeId = game.PlaceId;
+                const servers = await this.getServerList(placeId);
+                
+                // Tìm server có 1-2 người chơi
+                const targetServer = servers.find(server => 
+                    this.targetPlayers.includes(server.playing) && 
+                    server.id !== game.JobId
+                );
+                
+                if (targetServer) {
+                    console.log(`Tìm thấy server phù hợp: ${targetServer.playing} người chơi`);
+                    TeleportService.TeleportToPlaceInstance(placeId, targetServer.id, Players.LocalPlayer);
+                } else {
+                    console.log('Không tìm thấy server phù hợp, thử lại...');
+                }
+            } else {
+                console.log('Không thể truy cập Roblox services');
+            }
+        } catch (error) {
+            console.error('Lỗi trong hopToNextServer:', error);
+        }
+    }
+
+    async getServerList(placeId) {
+        try {
+            // Giả lập API call để lấy danh sách server
+            // Trong thực tế, bạn cần sử dụng Roblox API
+            const response = await fetch(`https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=Asc&limit=100`);
+            const data = await response.json();
+            
+            return data.data.map(server => ({
+                id: server.id,
+                playing: server.playing,
+                maxPlayers: server.maxPlayers
+            }));
+        } catch (error) {
+            console.error('Lỗi khi lấy danh sách server:', error);
+            return [];
+        }
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Khởi tạo Server Hopper
+const serverHopper = new ServerHopper();
+
+console.log('Server Hopper đã được khởi tạo!');
+console.log('Sử dụng UI trên màn hình để điều khiển.');
+
+// Export cho sử dụng trong console
+window.serverHopper = serverHopper;
