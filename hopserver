@@ -1,343 +1,330 @@
-// Server Hopping Script với Job ID
-// Chỉ hop vào server có 1-2 người chơi
+-- Blox Fruits Server Hopper Script
+-- Hop vào server có ít người (1-2 người)
+-- Tính năng nhập Job ID và tự join
+-- UI ở phía trên giữa màn hình
 
-class ServerHopper {
-    constructor() {
-        this.isHopping = false;
-        this.targetPlayers = [1, 2]; // Server có 1 hoặc 2 người
-        this.hopInterval = 3000; // 3 giây giữa mỗi lần hop
-        this.createUI();
-    }
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
-    createUI() {
-        // Tạo UI container
-        const uiContainer = document.createElement('div');
-        uiContainer.id = 'server-hopper-ui';
-        uiContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
-            color: white;
-            z-index: 9999;
-            min-width: 300px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        `;
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-        // Title
-        const title = document.createElement('h3');
-        title.textContent = 'Server Hopper';
-        title.style.cssText = `
-            margin: 0 0 10px 0;
-            color: #00ff00;
-            font-size: 16px;
-        `;
+-- Tạo ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ServerHopperGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
 
-        // Job ID Input Section
-        const jobIdSection = document.createElement('div');
-        jobIdSection.style.cssText = `
-            margin-bottom: 10px;
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        `;
+-- Frame chính
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 400, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -200, 0, 10) -- Phía trên giữa màn hình
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
-        const jobIdInput = document.createElement('input');
-        jobIdInput.id = 'job-id-input';
-        jobIdInput.type = 'text';
-        jobIdInput.placeholder = 'Nhập Job ID...';
-        jobIdInput.style.cssText = `
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 14px;
-        `;
+-- Bo góc cho frame
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
 
-        // Auto join khi nhập job ID
-        jobIdInput.addEventListener('input', (e) => {
-            const jobId = e.target.value.trim();
-            if (jobId) {
-                this.joinJobId(jobId);
-            }
-        });
+-- Title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.BorderSizePixel = 0
+title.Text = "🌊 Blox Fruits Server Hopper"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
 
-        // Copy Job ID Button
-        const copyJobIdBtn = document.createElement('button');
-        copyJobIdBtn.textContent = 'Copy Job ID';
-        copyJobIdBtn.style.cssText = `
-            padding: 8px 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        `;
-        copyJobIdBtn.addEventListener('click', () => this.copyCurrentJobId());
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
 
-        // Server Info
-        const serverInfo = document.createElement('div');
-        serverInfo.id = 'server-info';
-        serverInfo.style.cssText = `
-            margin-bottom: 10px;
-            font-size: 12px;
-            color: #ccc;
-        `;
+-- Job ID Input
+local jobIdLabel = Instance.new("TextLabel")
+jobIdLabel.Name = "JobIdLabel"
+jobIdLabel.Size = UDim2.new(0, 80, 0, 30)
+jobIdLabel.Position = UDim2.new(0, 10, 0, 50)
+jobIdLabel.BackgroundTransparency = 1
+jobIdLabel.Text = "Job ID:"
+jobIdLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobIdLabel.TextScaled = true
+jobIdLabel.Font = Enum.Font.Gotham
+jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
+jobIdLabel.Parent = mainFrame
 
-        // Control Buttons
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = `
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        `;
+local jobIdInput = Instance.new("TextBox")
+jobIdInput.Name = "JobIdInput"
+jobIdInput.Size = UDim2.new(0, 200, 0, 30)
+jobIdInput.Position = UDim2.new(0, 90, 0, 50)
+jobIdInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+jobIdInput.BorderSizePixel = 0
+jobIdInput.Text = ""
+jobIdInput.PlaceholderText = "Nhập Job ID để tự join..."
+jobIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobIdInput.TextScaled = true
+jobIdInput.Font = Enum.Font.Gotham
+jobIdInput.Parent = mainFrame
 
-        const startBtn = document.createElement('button');
-        startBtn.id = 'start-hop-btn';
-        startBtn.textContent = 'Bắt đầu Hop';
-        startBtn.style.cssText = `
-            padding: 8px 16px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        `;
-        startBtn.addEventListener('click', () => this.toggleHopping());
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 5)
+inputCorner.Parent = jobIdInput
 
-        const stopBtn = document.createElement('button');
-        stopBtn.id = 'stop-hop-btn';
-        stopBtn.textContent = 'Dừng Hop';
-        stopBtn.style.cssText = `
-            padding: 8px 16px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        `;
-        stopBtn.addEventListener('click', () => this.stopHopping());
+-- Copy Job ID Button
+local copyJobIdBtn = Instance.new("TextButton")
+copyJobIdBtn.Name = "CopyJobIdBtn"
+copyJobIdBtn.Size = UDim2.new(0, 90, 0, 30)
+copyJobIdBtn.Position = UDim2.new(0, 300, 0, 50)
+copyJobIdBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+copyJobIdBtn.BorderSizePixel = 0
+copyJobIdBtn.Text = "Copy Job ID"
+copyJobIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyJobIdBtn.TextScaled = true
+copyJobIdBtn.Font = Enum.Font.GothamBold
+copyJobIdBtn.Parent = mainFrame
 
-        // Assemble UI
-        jobIdSection.appendChild(jobIdInput);
-        jobIdSection.appendChild(copyJobIdBtn);
-        buttonContainer.appendChild(startBtn);
-        buttonContainer.appendChild(stopBtn);
+local copyBtnCorner = Instance.new("UICorner")
+copyBtnCorner.CornerRadius = UDim.new(0, 5)
+copyBtnCorner.Parent = copyJobIdBtn
+
+-- Server Hop Button
+local serverHopBtn = Instance.new("TextButton")
+serverHopBtn.Name = "ServerHopBtn"
+serverHopBtn.Size = UDim2.new(0, 180, 0, 40)
+serverHopBtn.Position = UDim2.new(0, 10, 0, 90)
+serverHopBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+serverHopBtn.BorderSizePixel = 0
+serverHopBtn.Text = "🔄 Hop Server (1-2 người)"
+serverHopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+serverHopBtn.TextScaled = true
+serverHopBtn.Font = Enum.Font.GothamBold
+serverHopBtn.Parent = mainFrame
+
+local hopBtnCorner = Instance.new("UICorner")
+hopBtnCorner.CornerRadius = UDim.new(0, 5)
+hopBtnCorner.Parent = serverHopBtn
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(0, 180, 0, 40)
+statusLabel.Position = UDim2.new(0, 200, 0, 90)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Sẵn sàng"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = mainFrame
+
+-- Toggle Button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Size = UDim2.new(0, 380, 0, 30)
+toggleBtn.Position = UDim2.new(0, 10, 0, 140)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = "🔥 Auto Hop ON (Tìm server ít người)"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextScaled = true
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Parent = mainFrame
+
+local toggleBtnCorner = Instance.new("UICorner")
+toggleBtnCorner.CornerRadius = UDim.new(0, 5)
+toggleBtnCorner.Parent = toggleBtn
+
+-- Biến điều khiển
+local autoHopEnabled = false
+local isHopping = false
+
+-- Hàm lấy Job ID hiện tại
+local function getCurrentJobId()
+    return game.JobId
+end
+
+-- Hàm copy Job ID
+local function copyJobId()
+    local jobId = getCurrentJobId()
+    if jobId and jobId ~= "" then
+        setclipboard(jobId)
+        statusLabel.Text = "Đã copy Job ID!"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+        wait(2)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        statusLabel.Text = "Không thể lấy Job ID!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        wait(2)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+-- Hàm join server bằng Job ID
+local function joinServerByJobId(jobId)
+    if jobId and jobId ~= "" then
+        statusLabel.Text = "Đang join server..."
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
         
-        uiContainer.appendChild(title);
-        uiContainer.appendChild(jobIdSection);
-        uiContainer.appendChild(serverInfo);
-        uiContainer.appendChild(buttonContainer);
-
-        // Add to page
-        document.body.appendChild(uiContainer);
-
-        // Update server info
-        this.updateServerInfo();
-    }
-
-    updateServerInfo() {
-        const serverInfoDiv = document.getElementById('server-info');
-        if (!serverInfoDiv) return;
-
-        try {
-            // Thử lấy thông tin server từ Roblox
-            const players = game?.Players;
-            const currentPlayers = players ? players.NumPlayers : 0;
-            const maxPlayers = players ? players.MaxPlayers : 0;
-            const jobId = game?.JobId || 'Không có';
-
-            serverInfoDiv.innerHTML = `
-                <div>Người chơi: ${currentPlayers}/${maxPlayers}</div>
-                <div>Job ID: ${jobId.substring(0, 8)}...</div>
-            `;
-        } catch (error) {
-            serverInfoDiv.innerHTML = `
-                <div>Không thể lấy thông tin server</div>
-                <div>Job ID: Không có</div>
-            `;
-        }
-    }
-
-    async joinJobId(jobId) {
-        try {
-            console.log(`Đang join Job ID: ${jobId}`);
-            
-            // Sử dụng TeleportService để join job ID
-            if (typeof game !== 'undefined' && game.GetService) {
-                const TeleportService = game.GetService('TeleportService');
-                const Players = game.GetService('Players');
-                const placeId = game.PlaceId;
-                
-                TeleportService.TeleportToPlaceInstance(placeId, jobId, Players.LocalPlayer);
-            } else {
-                console.log('Không thể truy cập TeleportService');
-            }
-        } catch (error) {
-            console.error('Lỗi khi join Job ID:', error);
-        }
-    }
-
-    async copyCurrentJobId() {
-        try {
-            const jobId = game?.JobId || 'Không có Job ID';
-            
-            if (navigator.clipboard) {
-                await navigator.clipboard.writeText(jobId);
-                console.log('Đã copy Job ID:', jobId);
-                
-                // Hiển thị thông báo
-                this.showNotification('Đã copy Job ID!');
-            } else {
-                // Fallback cho browser cũ
-                const textArea = document.createElement('textarea');
-                textArea.value = jobId;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                this.showNotification('Đã copy Job ID!');
-            }
-        } catch (error) {
-            console.error('Lỗi khi copy Job ID:', error);
-            this.showNotification('Lỗi khi copy Job ID!');
-        }
-    }
-
-    showNotification(message) {
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 10000;
-            font-size: 14px;
-        `;
+        local success, errorMessage = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId, player)
+        end)
         
-        document.body.appendChild(notification);
+        if not success then
+            statusLabel.Text = "Lỗi: " .. tostring(errorMessage)
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            wait(3)
+            statusLabel.Text = "Sẵn sàng"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+end
+
+-- Hàm tìm server có ít người
+local function findLowPlayerServer()
+    local servers = {}
+    local cursor = ""
+    
+    repeat
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor))
+        end)
         
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 2000);
-    }
+        if success and result then
+            for _, server in pairs(result.data) do
+                if server.playing and server.playing >= 1 and server.playing <= 2 and server.id ~= game.JobId then
+                    table.insert(servers, server)
+                end
+            end
+            cursor = result.nextPageCursor or ""
+        else
+            break
+        end
+    until cursor == ""
+    
+    return servers
+end
 
-    async toggleHopping() {
-        if (this.isHopping) {
-            this.stopHopping();
-        } else {
-            this.startHopping();
-        }
-    }
-
-    async startHopping() {
-        this.isHopping = true;
-        const startBtn = document.getElementById('start-hop-btn');
-        if (startBtn) {
-            startBtn.textContent = 'Đang Hop...';
-            startBtn.style.background = '#ffc107';
-        }
-
-        console.log('Bắt đầu server hopping...');
+-- Hàm hop server
+local function hopToLowPlayerServer()
+    if isHopping then return end
+    isHopping = true
+    
+    statusLabel.Text = "Đang tìm server..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    
+    local servers = findLowPlayerServer()
+    
+    if #servers > 0 then
+        local randomServer = servers[math.random(1, #servers)]
+        statusLabel.Text = "Tìm thấy server (" .. randomServer.playing .. " người)!"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
         
-        while (this.isHopping) {
-            try {
-                await this.hopToNextServer();
-                await this.sleep(this.hopInterval);
-            } catch (error) {
-                console.error('Lỗi khi hop server:', error);
-                await this.sleep(this.hopInterval);
-            }
-        }
-    }
+        wait(1)
+        
+        local success, errorMessage = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer.id, player)
+        end)
+        
+        if not success then
+            statusLabel.Text = "Lỗi teleport: " .. tostring(errorMessage)
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            wait(3)
+            statusLabel.Text = "Sẵn sàng"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    else
+        statusLabel.Text = "Không tìm thấy server phù hợp!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        wait(3)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+    
+    isHopping = false
+end
 
-    stopHopping() {
-        this.isHopping = false;
-        const startBtn = document.getElementById('start-hop-btn');
-        if (startBtn) {
-            startBtn.textContent = 'Bắt đầu Hop';
-            startBtn.style.background = '#28a745';
-        }
-        console.log('Đã dừng server hopping');
-    }
+-- Auto hop loop
+spawn(function()
+    while true do
+        if autoHopEnabled and not isHopping then
+            local currentPlayers = #Players:GetPlayers()
+            if currentPlayers > 2 then
+                hopToLowPlayerServer()
+            end
+        end
+        wait(10) -- Kiểm tra mỗi 10 giây
+    end
+end)
 
-    async hopToNextServer() {
-        try {
-            if (typeof game !== 'undefined' && game.GetService) {
-                const TeleportService = game.GetService('TeleportService');
-                const Players = game.GetService('Players');
-                const HttpService = game.GetService('HttpService');
-                
-                // Lấy danh sách server
-                const placeId = game.PlaceId;
-                const servers = await this.getServerList(placeId);
-                
-                // Tìm server có 1-2 người chơi
-                const targetServer = servers.find(server => 
-                    this.targetPlayers.includes(server.playing) && 
-                    server.id !== game.JobId
-                );
-                
-                if (targetServer) {
-                    console.log(`Tìm thấy server phù hợp: ${targetServer.playing} người chơi`);
-                    TeleportService.TeleportToPlaceInstance(placeId, targetServer.id, Players.LocalPlayer);
-                } else {
-                    console.log('Không tìm thấy server phù hợp, thử lại...');
-                }
-            } else {
-                console.log('Không thể truy cập Roblox services');
-            }
-        } catch (error) {
-            console.error('Lỗi trong hopToNextServer:', error);
-        }
-    }
+-- Event handlers
+copyJobIdBtn.MouseButton1Click:Connect(copyJobId)
 
-    async getServerList(placeId) {
-        try {
-            // Giả lập API call để lấy danh sách server
-            // Trong thực tế, bạn cần sử dụng Roblox API
-            const response = await fetch(`https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=Asc&limit=100`);
-            const data = await response.json();
-            
-            return data.data.map(server => ({
-                id: server.id,
-                playing: server.playing,
-                maxPlayers: server.maxPlayers
-            }));
-        } catch (error) {
-            console.error('Lỗi khi lấy danh sách server:', error);
-            return [];
-        }
-    }
+serverHopBtn.MouseButton1Click:Connect(hopToLowPlayerServer)
 
-    sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
+toggleBtn.MouseButton1Click:Connect(function()
+    autoHopEnabled = not autoHopEnabled
+    if autoHopEnabled then
+        toggleBtn.Text = "🔥 Auto Hop ON (Tìm server ít người)"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
+    else
+        toggleBtn.Text = "❄️ Auto Hop OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    end
+end)
 
-// Khởi tạo Server Hopper
-const serverHopper = new ServerHopper();
+-- Tự động join khi nhập Job ID
+jobIdInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed or jobIdInput.Text ~= "" then
+        local jobId = jobIdInput.Text:gsub("%s+", "") -- Loại bỏ khoảng trắng
+        if jobId ~= "" then
+            joinServerByJobId(jobId)
+        end
+    end
+end)
 
-console.log('Server Hopper đã được khởi tạo!');
-console.log('Sử dụng UI trên màn hình để điều khiển.');
+-- Làm cho UI có thể kéo thả
+local dragging = false
+local dragStart = nil
+local startPos = nil
 
-// Export cho sử dụng trong console
-window.serverHopper = serverHopper;
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            updateInput(input)
+        end
+    end
+end)
+
+print("✅ Blox Fruits Server Hopper đã được tải thành công!")
+print("📍 UI xuất hiện ở phía trên giữa màn hình")
+print("🔥 Tính năng: Hop server ít người, Auto join bằng Job ID, Copy Job ID hiện tại")
