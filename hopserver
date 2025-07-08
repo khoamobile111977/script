@@ -77,11 +77,11 @@ inputCorner.Parent = jobIdInput
 -- Copy Job ID Button
 local copyJobIdBtn = Instance.new("TextButton")
 copyJobIdBtn.Name = "CopyJobIdBtn"
-copyJobIdBtn.Size = UDim2.new(0, 90, 0, 30)
+copyJobIdBtn.Size = UDim2.new(0, 70, 0, 30)
 copyJobIdBtn.Position = UDim2.new(0, 300, 0, 50)
 copyJobIdBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
 copyJobIdBtn.BorderSizePixel = 0
-copyJobIdBtn.Text = "Copy Job ID"
+copyJobIdBtn.Text = "Copy"
 copyJobIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 copyJobIdBtn.TextScaled = true
 copyJobIdBtn.Font = Enum.Font.GothamBold
@@ -90,6 +90,23 @@ copyJobIdBtn.Parent = mainFrame
 local copyBtnCorner = Instance.new("UICorner")
 copyBtnCorner.CornerRadius = UDim.new(0, 5)
 copyBtnCorner.Parent = copyJobIdBtn
+
+-- Clear Job ID Button
+local clearJobIdBtn = Instance.new("TextButton")
+clearJobIdBtn.Name = "ClearJobIdBtn"
+clearJobIdBtn.Size = UDim2.new(0, 20, 0, 30)
+clearJobIdBtn.Position = UDim2.new(0, 375, 0, 50)
+clearJobIdBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
+clearJobIdBtn.BorderSizePixel = 0
+clearJobIdBtn.Text = "✕"
+clearJobIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearJobIdBtn.TextScaled = true
+clearJobIdBtn.Font = Enum.Font.GothamBold
+clearJobIdBtn.Parent = mainFrame
+
+local clearBtnCorner = Instance.new("UICorner")
+clearBtnCorner.CornerRadius = UDim.new(0, 5)
+clearBtnCorner.Parent = clearJobIdBtn
 
 -- Server Hop Button
 local serverHopBtn = Instance.new("TextButton")
@@ -151,6 +168,16 @@ local function copyJobId()
     end
 end
 
+-- Hàm clear Job ID
+local function clearJobId()
+    jobIdInput.Text = ""
+    statusLabel.Text = "Đã xóa Job ID!"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    wait(1)
+    statusLabel.Text = "Sẵn sàng"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
 -- Hàm join server bằng Job ID
 local function joinServerByJobId(jobId)
     if jobId and jobId ~= "" then
@@ -171,9 +198,10 @@ local function joinServerByJobId(jobId)
     end
 end
 
--- Hàm tìm và join server đầu tiên phù hợp
-local function findAndJoinFirstServer()
+-- Hàm tìm 10 server phù hợp và join vào server thứ 10
+local function findAndJoinTenthServer()
     local cursor = ""
+    local suitableServers = {}
     
     repeat
         local success, result = pcall(function()
@@ -183,25 +211,34 @@ local function findAndJoinFirstServer()
         if success and result then
             for _, server in pairs(result.data) do
                 if server.playing and server.playing >= 1 and server.playing <= 2 and server.id ~= game.JobId then
-                    -- Tìm thấy server đầu tiên phù hợp, join ngay
-                    statusLabel.Text = "Tìm thấy server (" .. server.playing .. " người)!"
-                    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+                    table.insert(suitableServers, server)
                     
-                    wait(1)
+                    -- Cập nhật status để user biết tiến trình
+                    statusLabel.Text = "Tìm thấy " .. #suitableServers .. "/10 server..."
+                    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
                     
-                    local teleportSuccess, teleportError = pcall(function()
-                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, player)
-                    end)
-                    
-                    if not teleportSuccess then
-                        statusLabel.Text = "Lỗi teleport: " .. tostring(teleportError)
-                        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-                        wait(3)
-                        statusLabel.Text = "Sẵn sàng"
-                        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    -- Nếu đã tìm được 10 server, join vào server thứ 10
+                    if #suitableServers >= 10 then
+                        local targetServer = suitableServers[10]
+                        statusLabel.Text = "Join server thứ 10 (" .. targetServer.playing .. " người)!"
+                        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+                        
+                        wait(1)
+                        
+                        local teleportSuccess, teleportError = pcall(function()
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+                        end)
+                        
+                        if not teleportSuccess then
+                            statusLabel.Text = "Lỗi teleport: " .. tostring(teleportError)
+                            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                            wait(3)
+                            statusLabel.Text = "Sẵn sàng"
+                            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        end
+                        
+                        return true -- Đã join thành công
                     end
-                    
-                    return true -- Đã tìm thấy và join, thoát khỏi hàm
                 end
             end
             cursor = result.nextPageCursor or ""
@@ -209,6 +246,29 @@ local function findAndJoinFirstServer()
             break
         end
     until cursor == ""
+    
+    -- Nếu không tìm đủ 10 server nhưng có ít nhất 1 server
+    if #suitableServers > 0 then
+        local targetServer = suitableServers[#suitableServers] -- Lấy server cuối cùng
+        statusLabel.Text = "Chỉ tìm thấy " .. #suitableServers .. " server, join vào server cuối!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+        
+        wait(1)
+        
+        local teleportSuccess, teleportError = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+        end)
+        
+        if not teleportSuccess then
+            statusLabel.Text = "Lỗi teleport: " .. tostring(teleportError)
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            wait(3)
+            statusLabel.Text = "Sẵn sàng"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        
+        return true
+    end
     
     return false -- Không tìm thấy server phù hợp
 end
@@ -218,10 +278,10 @@ local function hopToLowPlayerServer()
     if isHopping then return end
     isHopping = true
     
-    statusLabel.Text = "Đang tìm server..."
+    statusLabel.Text = "Đang tìm 10 server..."
     statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
     
-    local found = findAndJoinFirstServer()
+    local found = findAndJoinTenthServer()
     
     if not found then
         statusLabel.Text = "Không tìm thấy server phù hợp!"
@@ -251,6 +311,8 @@ end)
 
 -- Event handlers
 copyJobIdBtn.MouseButton1Click:Connect(copyJobId)
+
+clearJobIdBtn.MouseButton1Click:Connect(clearJobId)
 
 serverHopBtn.MouseButton1Click:Connect(hopToLowPlayerServer)
 
