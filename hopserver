@@ -1,7 +1,4 @@
--- Blox Fruits Server Hopper Script
--- Hop vào server có ít người (1-2 người)
--- Tính năng nhập Job ID và tự join
--- UI ở phía trên giữa màn hình
+
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -39,7 +36,7 @@ title.Size = UDim2.new(1, 0, 0, 40)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 title.BorderSizePixel = 0
-title.Text = "🌊 Blox Fruits Server Hopper"
+title.Text = "🌊 Elite Hopper"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -103,7 +100,7 @@ serverHopBtn.Size = UDim2.new(0, 180, 0, 40)
 serverHopBtn.Position = UDim2.new(0, 10, 0, 90)
 serverHopBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
 serverHopBtn.BorderSizePixel = 0
-serverHopBtn.Text = "🚀 Hop Server "
+serverHopBtn.Text = "🚀 Hop Server"
 serverHopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 serverHopBtn.TextScaled = true
 serverHopBtn.Font = Enum.Font.GothamBold
@@ -262,7 +259,7 @@ serverHopBtn.MouseButton1Click:Connect(hopToLowPlayerServer)
 toggleBtn.MouseButton1Click:Connect(function()
     autoHopEnabled = not autoHopEnabled
     if autoHopEnabled then
-        toggleBtn.Text = "🔥 Auto Hop ON"
+        toggleBtn.Text = "🔥 Auto Hop ON (>7 người sẽ hop)"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
     else
         toggleBtn.Text = "❄️ Auto Hop OFF"
@@ -312,3 +309,4 @@ title.InputChanged:Connect(function(input)
         end
     end
 end)
+
