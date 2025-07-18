@@ -102,7 +102,7 @@ end
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
 speedLabel.Position = UDim2.new(0.05, 0, 0.65, 0)
-speedLabel.Text = "Tốc độ bay: 500"  -- Giá trị mặc định mới
+speedLabel.Text = "Tốc độ bay: 325"  -- Giá trị mặc định mới
 speedLabel.TextColor3 = COLORS.text
 speedLabel.TextSize = 14
 speedLabel.Font = Enum.Font.GothamSemibold
@@ -146,7 +146,7 @@ local locations = {
 }
 
 -- Biến lưu tốc độ (giá trị mặc định mới)
-local flySpeed = 500
+local flySpeed = 325
 
 -- Xử lý slider
 local function updateSlider(input)
