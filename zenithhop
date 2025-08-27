@@ -1,0 +1,551 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- Drawing objects
+local drawingObjects = {}
+local ui = {}
+
+-- UI State
+local isDragging = false
+local dragOffset = Vector2.new(0, 0)
+local jobIdText = ""
+local isInputActive = false
+local cursorVisible = true
+local lastCursorBlink = tick()
+
+-- Colors
+local colors = {
+    background = Color3.fromRGB(30, 30, 30),
+    header = Color3.fromRGB(50, 50, 50),
+    primary = Color3.fromRGB(0, 162, 255),
+    success = Color3.fromRGB(0, 255, 127),
+    danger = Color3.fromRGB(255, 69, 0),
+    warning = Color3.fromRGB(255, 255, 0),
+    text = Color3.fromRGB(255, 255, 255),
+    inputBg = Color3.fromRGB(40, 40, 40),
+    outline = Color3.fromRGB(70, 70, 70)
+}
+
+-- UI Dimensions
+local uiSize = Vector2.new(400, 140)
+local uiPosition = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2 - uiSize.X / 2, 10)
+
+-- Helper function to create drawing objects
+local function createDrawingObject(type, properties)
+    local obj = Drawing.new(type)
+    for prop, value in pairs(properties) do
+        obj[prop] = value
+    end
+    table.insert(drawingObjects, obj)
+    return obj
+end
+
+-- Helper function to check if point is inside rectangle
+local function isPointInRect(point, position, size)
+    return point.X >= position.X and point.X <= position.X + size.X and
+           point.Y >= position.Y and point.Y <= position.Y + size.Y
+end
+
+-- Create UI elements
+local function createUI()
+    -- Main background
+    ui.background = createDrawingObject("Square", {
+        Position = uiPosition,
+        Size = uiSize,
+        Color = colors.background,
+        Filled = true,
+        Visible = true,
+        ZIndex = 1
+    })
+    
+    -- Header background
+    ui.header = createDrawingObject("Square", {
+        Position = uiPosition,
+        Size = Vector2.new(uiSize.X, 40),
+        Color = colors.header,
+        Filled = true,
+        Visible = true,
+        ZIndex = 2
+    })
+    
+    -- Title text
+    ui.titleText = createDrawingObject("Text", {
+        Text = "🌊 Elite Hopper",
+        Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 10),
+        Color = colors.text,
+        Size = 18,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Job ID Label
+    ui.jobIdLabel = createDrawingObject("Text", {
+        Text = "Job ID:",
+        Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 55),
+        Color = colors.text,
+        Size = 14,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Job ID Input background
+    ui.inputBg = createDrawingObject("Square", {
+        Position = Vector2.new(uiPosition.X + 70, uiPosition.Y + 50),
+        Size = Vector2.new(200, 25),
+        Color = colors.inputBg,
+        Filled = true,
+        Visible = true,
+        ZIndex = 2
+    })
+    
+    -- Job ID Input outline
+    ui.inputOutline = createDrawingObject("Square", {
+        Position = Vector2.new(uiPosition.X + 70, uiPosition.Y + 50),
+        Size = Vector2.new(200, 25),
+        Color = colors.outline,
+        Filled = false,
+        Thickness = 1,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Job ID Input text
+    ui.inputText = createDrawingObject("Text", {
+        Text = "",
+        Position = Vector2.new(uiPosition.X + 75, uiPosition.Y + 55),
+        Color = colors.text,
+        Size = 12,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 4
+    })
+    
+    -- Input placeholder
+    ui.placeholderText = createDrawingObject("Text", {
+        Text = "Nhập Job ID...",
+        Position = Vector2.new(uiPosition.X + 75, uiPosition.Y + 55),
+        Color = Color3.fromRGB(150, 150, 150),
+        Size = 12,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 4
+    })
+    
+    -- Copy button background
+    ui.copyBg = createDrawingObject("Square", {
+        Position = Vector2.new(uiPosition.X + 280, uiPosition.Y + 50),
+        Size = Vector2.new(50, 25),
+        Color = colors.primary,
+        Filled = true,
+        Visible = true,
+        ZIndex = 2
+    })
+    
+    -- Copy button text
+    ui.copyText = createDrawingObject("Text", {
+        Text = "Copy",
+        Position = Vector2.new(uiPosition.X + 295, uiPosition.Y + 55),
+        Color = colors.text,
+        Size = 12,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Clear button background
+    ui.clearBg = createDrawingObject("Square", {
+        Position = Vector2.new(uiPosition.X + 340, uiPosition.Y + 50),
+        Size = Vector2.new(25, 25),
+        Color = colors.danger,
+        Filled = true,
+        Visible = true,
+        ZIndex = 2
+    })
+    
+    -- Clear button text
+    ui.clearText = createDrawingObject("Text", {
+        Text = "✕",
+        Position = Vector2.new(uiPosition.X + 348, uiPosition.Y + 55),
+        Color = colors.text,
+        Size = 12,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Server hop button background
+    ui.hopBg = createDrawingObject("Square", {
+        Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 85),
+        Size = Vector2.new(150, 35),
+        Color = colors.success,
+        Filled = true,
+        Visible = true,
+        ZIndex = 2
+    })
+    
+    -- Server hop button text
+    ui.hopText = createDrawingObject("Text", {
+        Text = "🚀 Hop Server",
+        Position = Vector2.new(uiPosition.X + 35, uiPosition.Y + 95),
+        Color = Color3.fromRGB(0, 0, 0),
+        Size = 14,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+    
+    -- Status text
+    ui.statusText = createDrawingObject("Text", {
+        Text = "Sẵn sàng",
+        Position = Vector2.new(uiPosition.X + 170, uiPosition.Y + 95),
+        Color = colors.text,
+        Size = 12,
+        Font = Drawing.Fonts.UI,
+        Visible = true,
+        ZIndex = 3
+    })
+end
+
+-- Update UI positions
+local function updateUIPositions()
+    ui.background.Position = uiPosition
+    ui.header.Position = uiPosition
+    ui.titleText.Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 10)
+    ui.jobIdLabel.Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 55)
+    ui.inputBg.Position = Vector2.new(uiPosition.X + 70, uiPosition.Y + 50)
+    ui.inputOutline.Position = Vector2.new(uiPosition.X + 70, uiPosition.Y + 50)
+    ui.inputText.Position = Vector2.new(uiPosition.X + 75, uiPosition.Y + 55)
+    ui.placeholderText.Position = Vector2.new(uiPosition.X + 75, uiPosition.Y + 55)
+    ui.copyBg.Position = Vector2.new(uiPosition.X + 280, uiPosition.Y + 50)
+    ui.copyText.Position = Vector2.new(uiPosition.X + 295, uiPosition.Y + 55)
+    ui.clearBg.Position = Vector2.new(uiPosition.X + 340, uiPosition.Y + 50)
+    ui.clearText.Position = Vector2.new(uiPosition.X + 348, uiPosition.Y + 55)
+    ui.hopBg.Position = Vector2.new(uiPosition.X + 10, uiPosition.Y + 85)
+    ui.hopText.Position = Vector2.new(uiPosition.X + 35, uiPosition.Y + 95)
+    ui.statusText.Position = Vector2.new(uiPosition.X + 170, uiPosition.Y + 95)
+end
+
+-- Update input display
+local function updateInputDisplay()
+    if jobIdText == "" then
+        ui.inputText.Text = ""
+        ui.placeholderText.Visible = true
+    else
+        ui.inputText.Text = jobIdText
+        ui.placeholderText.Visible = false
+        
+        -- Add cursor if input is active
+        if isInputActive then
+            if cursorVisible then
+                ui.inputText.Text = jobIdText .. "|"
+            end
+        end
+    end
+end
+
+-- Set status message
+local function setStatus(message, color)
+    ui.statusText.Text = message
+    ui.statusText.Color = color or colors.text
+end
+
+-- Core functions from original script
+local isHopping = false
+
+local function getCurrentJobId()
+    return game.JobId
+end
+
+local function copyJobId()
+    local jobId = getCurrentJobId()
+    if jobId and jobId ~= "" then
+        setclipboard(jobId)
+        setStatus("Đã copy Job ID!", colors.success)
+        spawn(function()
+            wait(2)
+            setStatus("Sẵn sàng")
+        end)
+    else
+        setStatus("Không thể lấy Job ID!", colors.danger)
+        spawn(function()
+            wait(2)
+            setStatus("Sẵn sàng")
+        end)
+    end
+end
+
+local function clearJobId()
+    jobIdText = ""
+    updateInputDisplay()
+    setStatus("Đã xóa Job ID!", colors.warning)
+    spawn(function()
+        wait(1)
+        setStatus("Sẵn sàng")
+    end)
+end
+
+local function joinServerByJobId(jobId)
+    if jobId and jobId ~= "" then
+        setStatus("Đang join server...", colors.warning)
+        
+        local success, errorMessage = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId, player)
+        end)
+        
+        if not success then
+            setStatus("Lỗi: " .. tostring(errorMessage), colors.danger)
+            spawn(function()
+                wait(3)
+                setStatus("Sẵn sàng")
+            end)
+        end
+    end
+end
+
+local function findAndJoinTenthServer()
+    local cursor = ""
+    local suitableServers = {}
+    
+    repeat
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor))
+        end)
+        
+        if success and result then
+            for _, server in pairs(result.data) do
+                if server.playing and server.playing >= 1 and server.playing <= 2 and server.id ~= game.JobId then
+                    table.insert(suitableServers, server)
+                    
+                    setStatus("Tìm thấy " .. #suitableServers .. "/10 server...", colors.warning)
+                    
+                    if #suitableServers >= 10 then
+                        local targetServer = suitableServers[10]
+                        setStatus("Join server thứ 10 (" .. targetServer.playing .. " người)!", colors.success)
+                        
+                        wait(1)
+                        
+                        local teleportSuccess, teleportError = pcall(function()
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+                        end)
+                        
+                        if not teleportSuccess then
+                            setStatus("Lỗi teleport: " .. tostring(teleportError), colors.danger)
+                            spawn(function()
+                                wait(3)
+                                setStatus("Sẵn sàng")
+                            end)
+                        end
+                        
+                        return true
+                    end
+                end
+            end
+            cursor = result.nextPageCursor or ""
+        else
+            break
+        end
+    until cursor == ""
+    
+    if #suitableServers > 0 then
+        local targetServer = suitableServers[#suitableServers]
+        setStatus("Chỉ tìm thấy " .. #suitableServers .. " server, join vào server cuối!", Color3.fromRGB(255, 165, 0))
+        
+        wait(1)
+        
+        local teleportSuccess, teleportError = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+        end)
+        
+        if not teleportSuccess then
+            setStatus("Lỗi teleport: " .. tostring(teleportError), colors.danger)
+            spawn(function()
+                wait(3)
+                setStatus("Sẵn sàng")
+            end)
+        end
+        
+        return true
+    end
+    
+    return false
+end
+
+local function hopToLowPlayerServer()
+    if isHopping then return end
+    isHopping = true
+    
+    setStatus("Đang tìm 10 server...", colors.warning)
+    
+    spawn(function()
+        local found = findAndJoinTenthServer()
+        
+        if not found then
+            setStatus("Không tìm thấy server phù hợp!", colors.danger)
+            wait(3)
+            setStatus("Sẵn sàng")
+        end
+        
+        isHopping = false
+    end)
+end
+
+-- Input handling
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mousePos = UserInputService:GetMouseLocation()
+        
+        -- Check header drag
+        if isPointInRect(mousePos, uiPosition, Vector2.new(uiSize.X, 40)) then
+            isDragging = true
+            dragOffset = mousePos - uiPosition
+        end
+        
+        -- Check copy button
+        if isPointInRect(mousePos, Vector2.new(uiPosition.X + 280, uiPosition.Y + 50), Vector2.new(50, 25)) then
+            copyJobId()
+        end
+        
+        -- Check clear button  
+        if isPointInRect(mousePos, Vector2.new(uiPosition.X + 340, uiPosition.Y + 50), Vector2.new(25, 25)) then
+            clearJobId()
+        end
+        
+        -- Check hop button
+        if isPointInRect(mousePos, Vector2.new(uiPosition.X + 10, uiPosition.Y + 85), Vector2.new(150, 35)) then
+            hopToLowPlayerServer()
+        end
+        
+        -- Check input field
+        if isPointInRect(mousePos, Vector2.new(uiPosition.X + 70, uiPosition.Y + 50), Vector2.new(200, 25)) then
+            isInputActive = true
+            ui.inputOutline.Color = colors.primary
+        else
+            isInputActive = false
+            ui.inputOutline.Color = colors.outline
+            -- Auto join if there's text
+            if jobIdText ~= "" then
+                local cleanJobId = jobIdText:gsub("%s+", "")
+                if cleanJobId ~= "" then
+                    joinServerByJobId(cleanJobId)
+                end
+            end
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and isDragging then
+        local mousePos = UserInputService:GetMouseLocation()
+        uiPosition = mousePos - dragOffset
+        
+        -- Keep UI within screen bounds
+        local viewport = workspace.CurrentCamera.ViewportSize
+        uiPosition = Vector2.new(
+            math.max(0, math.min(uiPosition.X, viewport.X - uiSize.X)),
+            math.max(0, math.min(uiPosition.Y, viewport.Y - uiSize.Y))
+        )
+        
+        updateUIPositions()
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = false
+    end
+end)
+
+-- Text input handling
+UserInputService.InputBegan:Connect(function(input)
+    if isInputActive and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.Backspace then
+            if #jobIdText > 0 then
+                jobIdText = jobIdText:sub(1, -2)
+                updateInputDisplay()
+            end
+        elseif input.KeyCode == Enum.KeyCode.Return then
+            isInputActive = false
+            ui.inputOutline.Color = colors.outline
+            if jobIdText ~= "" then
+                local cleanJobId = jobIdText:gsub("%s+", "")
+                if cleanJobId ~= "" then
+                    joinServerByJobId(cleanJobId)
+                end
+            end
+        end
+    end
+end)
+
+UserInputService.TextBoxService.TextBoxReleased:Connect(function(textBox)
+    if isInputActive then
+        local newText = textBox.Text
+        if newText ~= jobIdText then
+            jobIdText = newText
+            updateInputDisplay()
+        end
+    end
+end)
+
+-- Handle character input
+local function handleTextInput(inputObject)
+    if isInputActive and inputObject.UserInputType == Enum.UserInputType.Keyboard then
+        local keyPressed = inputObject.KeyCode.Name
+        if keyPressed:len() == 1 and keyPressed:match("%w") then
+            jobIdText = jobIdText .. keyPressed
+            updateInputDisplay()
+        elseif inputObject.KeyCode == Enum.KeyCode.Space then
+            jobIdText = jobIdText .. " "
+            updateInputDisplay()
+        elseif keyPressed:match("^[0-9]+$") or keyPressed:match("^%w+$") then
+            jobIdText = jobIdText .. keyPressed
+            updateInputDisplay()
+        end
+    end
+end
+
+-- Cursor blinking
+RunService.Heartbeat:Connect(function()
+    if isInputActive then
+        if tick() - lastCursorBlink > 0.5 then
+            cursorVisible = not cursorVisible
+            lastCursorBlink = tick()
+            updateInputDisplay()
+        end
+    end
+end)
+
+-- Cleanup function
+local function cleanup()
+    for _, obj in pairs(drawingObjects) do
+        if obj.Remove then
+            obj:Remove()
+        end
+    end
+    drawingObjects = {}
+end
+
+-- Initialize UI
+createUI()
+updateInputDisplay()
+
+-- Handle game close
+game.Players.PlayerRemoving:Connect(function(plr)
+    if plr == player then
+        cleanup()
+    end
+end)
+
+print("Elite Hopper loaded with Drawing API!")
+print("Features:")
+print("- Drag UI by clicking the header")
+print("- Click input field to enter Job ID")
+print("- Copy button gets current server's Job ID")
+print("- Clear button (X) clears the input")
+print("- Hop Server finds and joins the 10th suitable server")
