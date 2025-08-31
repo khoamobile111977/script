@@ -1,0 +1,345 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ServerHopperGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 400, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -200, 0, 10) 
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.BorderSizePixel = 0
+title.Text = "🌊 Elite Hopper"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
+
+
+local jobIdLabel = Instance.new("TextLabel")
+jobIdLabel.Name = "JobIdLabel"
+jobIdLabel.Size = UDim2.new(0, 80, 0, 30)
+jobIdLabel.Position = UDim2.new(0, 10, 0, 50)
+jobIdLabel.BackgroundTransparency = 1
+jobIdLabel.Text = "Job ID:"
+jobIdLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobIdLabel.TextScaled = true
+jobIdLabel.Font = Enum.Font.Gotham
+jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
+jobIdLabel.Parent = mainFrame
+
+local jobIdInput = Instance.new("TextBox")
+jobIdInput.Name = "JobIdInput"
+jobIdInput.Size = UDim2.new(0, 200, 0, 30)
+jobIdInput.Position = UDim2.new(0, 90, 0, 50)
+jobIdInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+jobIdInput.BorderSizePixel = 0
+jobIdInput.Text = ""
+jobIdInput.PlaceholderText = "Nhập Job id hẹ hẹ"
+jobIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobIdInput.TextScaled = true
+jobIdInput.Font = Enum.Font.Gotham
+jobIdInput.Parent = mainFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 5)
+inputCorner.Parent = jobIdInput
+
+
+local copyJobIdBtn = Instance.new("TextButton")
+copyJobIdBtn.Name = "CopyJobIdBtn"
+copyJobIdBtn.Size = UDim2.new(0, 70, 0, 30)
+copyJobIdBtn.Position = UDim2.new(0, 300, 0, 50)
+copyJobIdBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+copyJobIdBtn.BorderSizePixel = 0
+copyJobIdBtn.Text = "Copy"
+copyJobIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyJobIdBtn.TextScaled = true
+copyJobIdBtn.Font = Enum.Font.GothamBold
+copyJobIdBtn.Parent = mainFrame
+
+local copyBtnCorner = Instance.new("UICorner")
+copyBtnCorner.CornerRadius = UDim.new(0, 5)
+copyBtnCorner.Parent = copyJobIdBtn
+
+
+local clearJobIdBtn = Instance.new("TextButton")
+clearJobIdBtn.Name = "ClearJobIdBtn"
+clearJobIdBtn.Size = UDim2.new(0, 20, 0, 30)
+clearJobIdBtn.Position = UDim2.new(0, 375, 0, 50)
+clearJobIdBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
+clearJobIdBtn.BorderSizePixel = 0
+clearJobIdBtn.Text = "✕"
+clearJobIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearJobIdBtn.TextScaled = true
+clearJobIdBtn.Font = Enum.Font.GothamBold
+clearJobIdBtn.Parent = mainFrame
+
+local clearBtnCorner = Instance.new("UICorner")
+clearBtnCorner.CornerRadius = UDim.new(0, 5)
+clearBtnCorner.Parent = clearJobIdBtn
+
+local serverHopBtn = Instance.new("TextButton")
+serverHopBtn.Name = "ServerHopBtn"
+serverHopBtn.Size = UDim2.new(0, 180, 0, 40)
+serverHopBtn.Position = UDim2.new(0, 10, 0, 90)
+serverHopBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+serverHopBtn.BorderSizePixel = 0
+serverHopBtn.Text = "🚀 Hop Server"
+serverHopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+serverHopBtn.TextScaled = true
+serverHopBtn.Font = Enum.Font.GothamBold
+serverHopBtn.Parent = mainFrame
+
+local hopBtnCorner = Instance.new("UICorner")
+hopBtnCorner.CornerRadius = UDim.new(0, 5)
+hopBtnCorner.Parent = serverHopBtn
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(0, 180, 0, 40)
+statusLabel.Position = UDim2.new(0, 200, 0, 90)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "iu elite"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = mainFrame
+
+mainFrame.Size = UDim2.new(0, 400, 0, 140)
+
+local isHopping = false
+local autoHopEnabled = false
+
+local function getCurrentJobId()
+    return game.JobId
+end
+
+local function copyJobId()
+    local jobId = getCurrentJobId()
+    if jobId and jobId ~= "" then
+        setclipboard(jobId)
+        statusLabel.Text = "Đã copy Job ID!"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+        wait(2)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        statusLabel.Text = "Không thể lấy Job ID!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        wait(2)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+local function clearJobId()
+    jobIdInput.Text = ""
+    statusLabel.Text = "Đã xóa Job ID!"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    wait(1)
+    statusLabel.Text = "Sẵn sàng"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+local function joinServerByJobId(jobId)
+    if jobId and jobId ~= "" then
+        statusLabel.Text = "Đang join server..."
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+        
+        local success, errorMessage = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId, player)
+        end)
+        
+        if not success then
+            statusLabel.Text = "Lỗi: " .. tostring(errorMessage)
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            wait(3)
+            statusLabel.Text = "Sẵn sàng"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+end
+
+local function findAndJoinTenthServer()
+    local cursor = ""
+    local suitableServers = {}
+    
+    repeat
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100&cursor=" .. cursor))
+        end)
+        
+        if success and result then
+            for _, server in pairs(result.data) do
+                if server.playing and server.playing >= 1 and server.playing <= 2 and server.id ~= game.JobId then
+                    table.insert(suitableServers, server)
+                    
+                    statusLabel.Text = "Tìm thấy " .. #suitableServers .. "/10 server..."
+                    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                    
+                    if #suitableServers >= 10 then
+                        local targetServer = suitableServers[10]
+                        statusLabel.Text = "Join server thứ 10 (" .. targetServer.playing .. " người)!"
+                        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+                        
+                        wait(1)
+                        
+                        local teleportSuccess, teleportError = pcall(function()
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+                        end)
+                        
+                        if not teleportSuccess then
+                            statusLabel.Text = "Lỗi teleport: " .. tostring(teleportError)
+                            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                            wait(3)
+                            statusLabel.Text = "Sẵn sàng"
+                            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        end
+                        
+                        return true 
+                    end
+                end
+            end
+            cursor = result.nextPageCursor or ""
+        else
+            break
+        end
+    until cursor == ""
+    
+    if #suitableServers > 0 then
+        local targetServer = suitableServers[#suitableServers] 
+        statusLabel.Text = "Chỉ tìm thấy " .. #suitableServers .. " server, join vào server cuối!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+        
+        wait(1)
+        
+        local teleportSuccess, teleportError = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer.id, player)
+        end)
+        
+        if not teleportSuccess then
+            statusLabel.Text = "Lỗi teleport: " .. tostring(teleportError)
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            wait(3)
+            statusLabel.Text = "Sẵn sàng"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        
+        return true
+    end
+    
+    return false 
+end
+
+
+local function hopToLowPlayerServer()
+    if isHopping then return end
+    isHopping = true
+    
+    statusLabel.Text = "Đang tìm 10 server..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    
+    local found = findAndJoinTenthServer()
+    
+    if not found then
+        statusLabel.Text = "Không tìm thấy server phù hợp!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        wait(3)
+        statusLabel.Text = "Sẵn sàng"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+    
+    isHopping = false
+end
+
+
+spawn(function()
+    while true do
+        if autoHopEnabled and not isHopping then
+            local currentPlayers = #Players:GetPlayers()
+            if currentPlayers > 7 then
+                statusLabel.Text = "Server có " .. currentPlayers .. " người, đang hop..."
+                statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                hopToLowPlayerServer()
+            end
+        end
+        wait(5) -- Kiểm tra mỗi 5 giây
+    end
+end)
+
+
+copyJobIdBtn.MouseButton1Click:Connect(copyJobId)
+
+clearJobIdBtn.MouseButton1Click:Connect(clearJobId)
+
+serverHopBtn.MouseButton1Click:Connect(hopToLowPlayerServer)
+
+
+jobIdInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed or jobIdInput.Text ~= "" then
+        local jobId = jobIdInput.Text:gsub("%s+", "") -- Loại bỏ khoảng trắng
+        if jobId ~= "" then
+            joinServerByJobId(jobId)
+        end
+    end
+end)
+
+
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            updateInput(input)
+        end
+    end
+end)
