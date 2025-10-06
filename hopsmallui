@@ -83,7 +83,6 @@ local clearCorner = Instance.new("UICorner")
 clearCorner.CornerRadius = UDim.new(0, 4)
 clearCorner.Parent = clearBtn
 
--- Hop Button - Nhỏ gọn
 local hopBtn = Instance.new("TextButton")
 hopBtn.Size = UDim2.new(0, 95, 0, 24)
 hopBtn.Position = UDim2.new(0, 5, 0, 52)
