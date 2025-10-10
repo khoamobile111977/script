@@ -1,6 +1,9 @@
 repeat wait() until game:IsLoaded()
 repeat wait() until game.Players and game.Players.LocalPlayer
 
+repeat wait() until game:IsLoaded()
+repeat wait() until game.Players and game.Players.LocalPlayer
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -9,6 +12,146 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Cấu hình
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1425902530012905566/4680xvhQ5RF7STymyHMiItM9h6Wt6FIZ41zExZdUnLZ4jqOyCgYIKDaBGcpEUR2CmJPl"
+
+local BOSSES = {
+    "Stone [Lv. 1550] [Boss]",
+    "Hydra Leader [Lv. 1675] [Boss]",
+    "Kilo Admiral [Lv. 1750] [Boss]",
+    "Captain Elephant [Lv. 1875] [Boss]",
+    "Beautiful Pirate [Lv. 1950] [Boss]"
+}
+
+local notifiedBosses = {}
+
+-- Gửi webhook Discord
+local function sendWebhook(bossName)
+    local jobId = game.JobId
+    print("[Boss Tracker] Đang gửi webhook cho:", bossName)
+    
+    local data = {
+        ["content"] = string.format("🔔 **Boss Spawn Alert!**\n\n**Boss:** %s\n**Server ID:** ```%s```", 
+            bossName, 
+            jobId
+        ),
+        ["username"] = "Boss Tracker"
+    }
+    
+    local success, response = pcall(function()
+        return request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+    
+    if success then
+        print("[Boss Tracker] ✓ Webhook gửi thành công!")
+    else
+        warn("[Boss Tracker] ❌ Lỗi gửi webhook:", response)
+    end
+end
+
+-- Kiểm tra boss có spawn không
+local function checkBossSpawned(bossFolder, bossName)
+    print("[Boss Tracker] Checking boss folder:", bossName)
+    print("[Boss Tracker] Children count:", #bossFolder:GetChildren())
+    
+    -- In ra tất cả children để debug
+    for i, child in ipairs(bossFolder:GetChildren()) do
+        print("[Boss Tracker] Child " .. i .. ":", child.Name, child.ClassName)
+    end
+    
+    -- Nếu folder có bất kỳ children nào = boss đã spawn
+    local hasChildren = #bossFolder:GetChildren() > 0
+    
+    if hasChildren then
+        if not notifiedBosses[bossName] then
+            notifiedBosses[bossName] = true
+            print("[Boss Tracker] ✓ Phát hiện boss:", bossName)
+            print("[Boss Tracker] Đang gửi webhook...")
+            sendWebhook(bossName)
+            
+            -- Theo dõi khi children bị xóa = boss chết
+            local connection
+            connection = bossFolder.ChildRemoved:Connect(function()
+                if #bossFolder:GetChildren() == 0 then
+                    notifiedBosses[bossName] = nil
+                    print("[Boss Tracker] Boss đã chết:", bossName)
+                    connection:Disconnect()
+                end
+            end)
+        else
+            print("[Boss Tracker] Boss đã được thông báo trước đó:", bossName)
+        end
+        return true
+    else
+        print("[Boss Tracker] Folder trống, boss chưa spawn:", bossName)
+    end
+    return false
+end
+
+-- Setup listener cho boss folder
+local function setupBossListener(bossFolder, bossName)
+    print("[Boss Tracker] ✓ Đang theo dõi:", bossName)
+    
+    local initialCheckDuration = 60 -- 60 giây = 1 phút
+    local checkInterval = 5 -- Check mỗi 5 giây
+    local startTime = tick()
+    local initialCheckActive = true
+    
+    -- Lặp check trong 1 phút đầu
+    task.spawn(function()
+        while initialCheckActive do
+            local elapsed = tick() - startTime
+            if elapsed >= initialCheckDuration then
+                initialCheckActive = false
+                print("[Boss Tracker] Kết thúc giai đoạn check ban đầu cho:", bossName)
+                break
+            end
+            
+            checkBossSpawned(bossFolder, bossName)
+            task.wait(checkInterval)
+        end
+    end)
+    
+    -- Event listener cho boss spawn mới (hoạt động song song)
+    bossFolder.ChildAdded:Connect(function(child)
+        print("[Boss Tracker] ChildAdded event - Boss spawn:", bossName)
+        task.wait(0.1)
+        checkBossSpawned(bossFolder, bossName)
+    end)
+end
+
+-- Khởi tạo boss tracker
+local function initBossTracker()
+    local enemySpawns = workspace:WaitForChild("_WorldOrigin", 10)
+    if not enemySpawns then 
+        warn("[Boss Tracker] Không tìm thấy _WorldOrigin")
+        return
+    end
+    
+    enemySpawns = enemySpawns:WaitForChild("EnemySpawns", 10)
+    if not enemySpawns then 
+        warn("[Boss Tracker] Không tìm thấy EnemySpawns")
+        return
+    end
+    
+    for _, bossName in ipairs(BOSSES) do
+        local bossFolder = enemySpawns:FindFirstChild(bossName)
+        if bossFolder then
+            setupBossListener(bossFolder, bossName)
+        else
+            warn("[Boss Tracker] Không tìm thấy boss folder:", bossName)
+        end
+    end
+end
+
+-- GUI Code
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ServerHopperGui"
 screenGui.Parent = playerGui
@@ -229,6 +372,7 @@ jobIdInput.FocusLost:Connect(function(enterPressed)
     end
 end)
 
+
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -258,4 +402,9 @@ title.InputChanged:Connect(function(input)
             updateInput(input)
         end
     end
+end)
+
+spawn(function()
+    initBossTracker()
+    print("[Elite Hopper] ✓ Boss Tracker đã sẵn sàng!")
 end)
