@@ -1,3 +1,5 @@
+repeat task.wait() until game.Players and game.Players.LocalPlayer
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -85,7 +87,7 @@ clearBtn.Size = UDim2.new(0, 30, 0, 20)
 clearBtn.Position = UDim2.new(0, 165, 0, 27)
 clearBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
 clearBtn.BorderSizePixel = 0
-clearBtn.Text = "❌"
+clearBtn.Text = "✕"
 clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 clearBtn.TextSize = 12
 clearBtn.Font = Enum.Font.GothamBold
@@ -123,9 +125,14 @@ statusLabel.Parent = mainFrame
 local function sendWebhook(bossName, jobId, playerCount)
     local data = {
         ["embeds"] = {{
-            ["title"] = "🔥 BOSS SPAWN DETECTED!",
-            ["description"] = "**Boss:** " .. bossName .. "\n**Job ID:** `" .. jobId .. "`\n**Players:** " .. playerCount .. "/12",
+            ["title"] = "Common Boss Spawned!",
+            ["description"] = "**Boss:** " .. bossName .. "\n**Players:** " .. playerCount .. "/12",
             ["color"] = 15158332,
+            ["fields"] = {{
+                ["name"] = "Job ID",
+                ["value"] = "```" .. jobId .. "```",
+                ["inline"] = false
+            }},
             ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%S"),
             ["footer"] = {
                 ["text"] = "Elite Boss Tracker"
@@ -158,13 +165,16 @@ local function checkBosses()
     for _, bossName in pairs(BOSS_PATHS) do
         local bossPath = game:GetService("Workspace")._WorldOrigin.EnemySpawns:FindFirstChild(bossName)
         
+        -- Chỉ cần check path tồn tại
         if bossPath then
+            -- Kiểm tra xem boss này đã được thông báo chưa
             if not notifiedBosses[bossName] then
                 print("🎯 Boss detected:", bossName)
                 sendWebhook(bossName, currentJobId, playerCount)
                 notifiedBosses[bossName] = true
             end
         else
+            -- Reset thông báo nếu path không còn tồn tại
             if notifiedBosses[bossName] then
                 notifiedBosses[bossName] = nil
             end
@@ -285,7 +295,6 @@ local function hopToLowPlayerServer()
     isHopping = false
 end
 
--- Event Handlers
 copyBtn.MouseButton1Click:Connect(copyJobId)
 clearBtn.MouseButton1Click:Connect(clearJobId)
 hopBtn.MouseButton1Click:Connect(hopToLowPlayerServer)
@@ -299,7 +308,7 @@ jobIdInput.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- Dragging
+
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -330,5 +339,3 @@ title.InputChanged:Connect(function(input)
         end
     end
 end)
-
-print("🔥 Boss Checker đã khởi động! Đang kiểm tra boss mỗi 3 giây...")
