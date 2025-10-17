@@ -1,0 +1,35 @@
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players and game.Players.LocalPlayer
+local lp = game.Players.LocalPlayer
+
+local args = {
+    "LoadFruit",
+    "Dough-Dough"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer(unpack(args))
+
+task.wait(0.5)
+
+local function findFruit()
+    for _, v in ipairs(lp.Backpack:GetChildren()) do
+        if string.find(v.Name, "Fruit") or v:FindFirstChild("EatRemote") then
+            return v
+        end
+    end
+    return nil
+end
+
+local fruit = findFruit()
+if fruit then
+    fruit.Parent = lp.Character
+end
+
+task.wait(0.5)
+
+local char = lp.Character
+for _, v in pairs(char:GetChildren()) do
+    if v:IsA("Tool") and v:FindFirstChild("EatRemote") then
+        v.EatRemote:InvokeServer()
+        break
+    end
+end
